@@ -1,42 +1,32 @@
 # This script reads input for the survey
 # and generates data in a transferable form to create the idf file
+import os
 import numpy as np
-
-# Geometry
-class Surface:
-    def __init__(self, name: str, coordinates: np.ndarray):
-        self.name = name
-        self.coordinates = coordinates  # Expected shape: (n_vertices, 3)
-
-
-class Layout:
-    def __init__(self, layout_name: str,dimensions: np.ndarray):
-        self.layout_name = layout_name
-        self.dimensions = dimensions
-        self.layout_coordinates = self.get_layout_coordinates()
-        self.surfaces = self.get_surfaces_coordinates()
-
-    def get_layout_coordinates(self):
-        # return vertices of selected layout
-        pass
-
-    def get_surfaces_coordinates(self):
-        # return vertices of surfaces of a layout
-        pass
-
-
+import pandas as pd
+from edit_idf_files import write_idf
+from Layouts import *
 
 # envelope
-
 # Internal loads
-
 # HVAC
-
 # output csv or xml
 
-
 def read_ghge_survey(survey_file):
-    rect_layout = Layout("rectangle",[2, 3, 4])
+    df = pd.read_excel("survey_1.xlsx", index_col=0).transpose()
+    df.info()
+    if df["Shape"][0] in ["rectangle","L-shape"]:
+        if df["Shape"][0] == "rectangle":
+            rect_layout = RectangularLayout(df["Shape"][0], df["Dimensions"][0], df["Dimensions"][1], df["Height"][0])
+            print(rect_layout)
+            print(rect_layout.get_surfaces()[1])
+
+    input_idf_file = os.path.join("EPlus_files", "empty_model.idf")
+    output_file_name = os.path.join("EPlus_files", "updated_model.idf")
+    model_params = {"layout":rect_layout,
+                    "envelope":df["Envelope"][0],
+                    "people":df["Occupancy"][0],
+                    "WWR":df["WWR"][0]}
+    write_idf(input_idf_file, model_params, output_file_name)
 
 
 read_ghge_survey("Survey file")

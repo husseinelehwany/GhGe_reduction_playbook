@@ -88,6 +88,22 @@ Schedule:Compact,
     Until: 24:00,            !- Field 3
     0.0;                     !- Field 4
 
+Schedule:Compact,
+    Office Activity Schedule,!- Name
+    Any Number,              !- Schedule Type Limits Name
+    Through: 12/31,          !- Field 1
+    For: AllDays,            !- Field 2
+    Until: 24:00,            !- Field 3
+    120.;                    !- Field 4
+
+
+!-   ===========  ALL OBJECTS IN CLASS: WINDOWMATERIAL:SIMPLEGLAZINGSYSTEM ===========
+
+WindowMaterial:SimpleGlazingSystem,
+    simple_glass,            !- Name
+    2,                       !- U-Factor {W/m2-K}
+    0.5;                     !- Solar Heat Gain Coefficient
+
 
 !-   ===========  ALL OBJECTS IN CLASS: GLOBALGEOMETRYRULES ===========
 
