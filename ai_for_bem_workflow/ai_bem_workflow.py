@@ -50,10 +50,11 @@ class BuildingEnergyWorkflow:
         self.workflow_dir = "energy_workflow_output"
         os.makedirs(self.workflow_dir, exist_ok=True)
         self.chat_history = ChatHistory(max_messages=10, max_tokens=150000)
+        self.client_type = client_type
         if client_type == "claude":
-            self.client = ClaudeAPIClient("claude-sonnet-4-20250514",10000)  # "claude-3-5-haiku-20241022"  # or claude-3-opus-20240229
+            self.client = ClaudeAPIClient("claude-sonnet-4-20250514",20000)  # "claude-3-5-haiku-20241022"  # or claude-3-opus-20240229
         elif client_type == "deepseek":
-            self.client = DeepseekAPIClient("deepseek-reasoner")  # "deepseek-chat"
+            self.client = DeepseekAPIClient("deepseek-reasoner")  # "deepseek-chat"  "deepseek-reasoner"
         elif client_type == "gemini":
             self.client = GeminiChats("gemini-2.5-pro")  #"gemini-2.5-pro"  "gemini-2.5-flash
         elif client_type == "openai":
@@ -93,9 +94,16 @@ class BuildingEnergyWorkflow:
         return prompt
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:
+        # save user message to chat history
         self.chat_history.append(role="user",content= prompt)
-        message = self.client.call_client(prompt)
+        # send message/history to llm
+        if self.client_type == "gemini":
+            message = self.client.call_client(prompt)
+        else:
+            message = self.client.call_client(self.chat_history.messages)
+        # save llm response to chat hsitory
         self.chat_history.append(role="assistant", content=message)
+        # create idf
         file_name = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
         with open(file_name, "w") as file:
             file.write(message)
@@ -202,7 +210,7 @@ class BuildingEnergyWorkflow:
         return prompt
 
     def save_chat_history(self):
-        history = self.client.get_history()
+        history = self.chat_history.get()
         file_name = os.path.join(self.workflow_dir, "full_history.json")
         with open(file_name, 'w') as f:
             json.dump(history, f, indent=4)
@@ -248,7 +256,7 @@ class BuildingEnergyWorkflow:
                 model = self.llm_generate_idf(prompt, i)
                 # Step 4: Run EnergyPlus
                 idf_path = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
-                success = self.run_energyplus(idf_path, self.epw_path)
+                success = self.run_energyplus(idf_path, self.epw_file)
                 self.check_areas(idf_path)
                 if success:
                     break
@@ -266,21 +274,12 @@ class BuildingEnergyWorkflow:
 
         return success
 
-
-
 def main():
     # Initialize workflow
     epw_path = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
-    workflow = BuildingEnergyWorkflow("gemini", epw_path)
-
+    workflow = BuildingEnergyWorkflow("deepseek", epw_path)
     # Run workflow
     success = workflow.run_workflow()
-
-    if success:
-        print("\n✅ Workflow completed successfully!")
-        print(f"Results saved in: {workflow.workflow_dir}")
-    else:
-        print("\n❌ Workflow failed. Check the log file for details.")
 
 if __name__ == "__main__":
     main()
