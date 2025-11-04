@@ -38,7 +38,7 @@ class BuildingEnergyWorkflow:
     Main workflow class for building energy modeling using LLMs
     """
     
-    def __init__(self, client_type):
+    def __init__(self, client_type, epw_path):
         """
         Initialize the workflow
         Args:
@@ -46,6 +46,7 @@ class BuildingEnergyWorkflow:
             workflow_dir: path to store outputs
             template_prompt
         """
+        self.epw_file = epw_path
         self.workflow_dir = "energy_workflow_output"
         os.makedirs(self.workflow_dir, exist_ok=True)
         self.chat_history = ChatHistory(max_messages=10, max_tokens=150000)
@@ -54,7 +55,7 @@ class BuildingEnergyWorkflow:
         elif client_type == "deepseek":
             self.client = DeepseekAPIClient("deepseek-reasoner")  # "deepseek-chat"
         elif client_type == "gemini":
-            self.client = GeminiChats("gemini-2.5-pro")
+            self.client = GeminiChats("gemini-2.5-pro")  #"gemini-2.5-pro"  "gemini-2.5-flash
         elif client_type == "openai":
             self.client = OpenaiAPIClient("gpt-5")
 
@@ -200,6 +201,12 @@ class BuildingEnergyWorkflow:
         prompt = f"Following errors occured after running the IDF file: {errors_str}. Fix errors and provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation."
         return prompt
 
+    def save_chat_history(self):
+        history = self.client.get_history()
+        file_name = os.path.join(self.workflow_dir, "full_history.json")
+        with open(file_name, 'w') as f:
+            json.dump(history, f, indent=4)
+
     def save_outputs(self):
         """
         saves simulation outputs under results folder, then emptys workflow_dir
@@ -226,7 +233,7 @@ class BuildingEnergyWorkflow:
 
         case = "full_flow"
 
-        epw_path = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
+
         if case == "full_flow":
             # Step 1: Get user input
             building_description = self.get_user_input()
@@ -241,7 +248,7 @@ class BuildingEnergyWorkflow:
                 model = self.llm_generate_idf(prompt, i)
                 # Step 4: Run EnergyPlus
                 idf_path = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
-                success = self.run_energyplus(idf_path, epw_path)
+                success = self.run_energyplus(idf_path, self.epw_path)
                 self.check_areas(idf_path)
                 if success:
                     break
@@ -253,14 +260,8 @@ class BuildingEnergyWorkflow:
                 else:  # no errors
                     break
 
-            # save history
-            # self.chat_history.save(os.path.join(self.workflow_dir, "full_history.json"))
-            history = self.client.get_history()
-            file_name = os.path.join(self.workflow_dir, "full_history.json")
-            with open(file_name, 'w') as f:
-                json.dump(history, f, indent=4)
-
-            # copy files
+            # save history & copy files
+            self.save_chat_history()
             self.save_outputs()
 
         return success
@@ -269,17 +270,17 @@ class BuildingEnergyWorkflow:
 
 def main():
     # Initialize workflow
-    workflow = BuildingEnergyWorkflow("gemini")
-    
+    epw_path = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
+    workflow = BuildingEnergyWorkflow("gemini", epw_path)
+
     # Run workflow
     success = workflow.run_workflow()
-    
+
     if success:
         print("\n✅ Workflow completed successfully!")
         print(f"Results saved in: {workflow.workflow_dir}")
     else:
         print("\n❌ Workflow failed. Check the log file for details.")
-
 
 if __name__ == "__main__":
     main()
