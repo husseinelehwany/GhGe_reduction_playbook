@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""
-Building Energy Modeling Workflow using LLMs
-==========================================
 
-This workflow uses Claude API to generate EnergyPlus IDF files from textual building descriptions,
-runs EnergyPlus simulations, and visualizes results.
-
-Author: AI Assistant
-Date: 2024
-"""
 
 import os
 import sys
@@ -110,6 +101,42 @@ class BuildingEnergyWorkflow:
 
         return message
 
+    def llm_generate_idf_dummy(self, prompt: str, i: int) -> str:
+        self.chat_history.append(role="user", content=prompt)
+        with open(os.path.join("input_files", "example_file_prompt.idf") , 'r') as file:
+            message = file.read()
+        self.chat_history.append(role="assistant", content=message)
+        file_name = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
+        with open(file_name, "w") as file:
+            file.write(message)
+
+        return message
+
+    def rectangle_area(self, p):
+        """
+        Calculate area of rectangle in 3D space
+        p1, p2, p3, p4: corner coordinates as arrays [x, y, z]
+        Assumes p2 and p4 are adjacent to p1
+        """
+        v1 = p[1] - p[0]
+        v2 = p[3] - p[0]
+        cross = np.cross(v1, v2)
+        return np.linalg.norm(cross)
+
+    def check_areas(self, idf_file):
+        idf = IDF(idf_file)
+        for surf in idf.idfobjects["BUILDINGSURFACE:DETAILED"]:
+            if surf.Number_of_Vertices == 4:
+                coordinates = []
+                for i in range(4):
+                    coordinates.append(
+                        [surf["Vertex_{}_Xcoordinate".format(i + 1)], surf["Vertex_{}_Ycoordinate".format(i + 1)],
+                         surf["Vertex_{}_Zcoordinate".format(i + 1)]])
+                area = self.rectangle_area(np.array(coordinates))
+                print("{} area= {} m2".format(surf.Surface_Type, str(area)))
+            else:
+                print("The function does not support surfaces with more or less that 4 vertices.")
+
     def _energyplus_callback_function(self, state):
         pass
 
@@ -135,6 +162,24 @@ class BuildingEnergyWorkflow:
     def read_error_file(self, path):
         # self.workflow_dir, 'out'
         error_file = os.path.join(path, 'eplusout.err')
+        error_content = []
+        if os.path.exists(error_file):
+            with open(error_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line_lower = line.lower()
+                    if '** severe  **' in line_lower or '**  fatal  **' in line_lower:
+                        error_content.append(line.strip())
+            if len(error_content) > 0:
+                print(error_content)
+            else:
+                print("No errors found")
+        else:
+            print("No error file generated.")
+        return error_content
+
+    def read_error_file_dummy(self, path):
+        # self.workflow_dir, 'out'
+        error_file = os.path.join("input_files", 'error_file_fail.err')
         error_content = []
         if os.path.exists(error_file):
             with open(error_file, 'r', encoding='utf-8') as f:
