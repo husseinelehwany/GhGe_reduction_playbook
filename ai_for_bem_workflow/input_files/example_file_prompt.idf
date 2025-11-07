@@ -439,3 +439,20 @@ FenestrationSurface:Detailed,
     0,                       !- Vertex 4 Y-coordinate {m}
     2.5;                     !- Vertex 4 Z-coordinate {m}
 
+
+!-   ===========  ALL OBJECTS IN CLASS: ZONEINFILTRATION:DESIGNFLOWRATE ===========
+
+ZoneInfiltration:DesignFlowRate,
+    infiltration,            !- Name
+    Simple Room,             !- Zone or ZoneList or Space or SpaceList Name
+    ,                        !- Schedule Name
+    Flow/ExteriorArea,       !- Design Flow Rate Calculation Method
+    ,                        !- Design Flow Rate {m3/s}
+    ,                        !- Flow Rate per Floor Area {m3/s-m2}
+    0.00025,                 !- Flow Rate per Exterior Surface Area {m3/s-m2}
+    ,                        !- Air Changes per Hour {1/hr}
+    1,                       !- Constant Term Coefficient
+    ,                        !- Temperature Term Coefficient
+    ,                        !- Velocity Term Coefficient
+    ;                        !- Velocity Squared Term Coefficient
+
