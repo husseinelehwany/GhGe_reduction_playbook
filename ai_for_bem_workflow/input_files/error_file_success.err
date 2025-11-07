@@ -1,0 +1,119 @@
+Program Version,EnergyPlus, Version 24.1.0-9d7789a3ac, YMD=2025.10.21 13:11,
+   ** Warning ** No reporting elements have been requested. No simulation results produced.
+   **   ~~~   ** ...Review requirements such as "Output:Table:SummaryReports", "Output:Table:Monthly", "Output:Variable", "Output:Meter" and others.
+   ** Warning ** GlobalGeometryRules: Potential mismatch of coordinate specifications. Note that the rectangular surfaces are relying on the default SurfaceGeometry for 'Relative to zone' coordinate.
+   **   ~~~   ** Coordinate System="WORLD"; while 
+   **   ~~~   ** Rectangular Surface Coordinate System="RELATIVE".
+   ** Warning ** GetSurfaceData: World Coordinate System selected.  Any non-zero Building/Zone North Axes or non-zero Zone Origins are ignored.
+   **   ~~~   ** These may be used in daylighting reference point coordinate calculations but not in normal geometry inputs.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z1_FLOOR", in Zone="ZONE_1".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z1_CEILING", in Zone="ZONE_1".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z2_FLOOR", in Zone="ZONE_2".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z2_CEILING", in Zone="ZONE_2".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z3_FLOOR", in Zone="ZONE_3".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z3_CEILING", in Zone="ZONE_3".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z4_FLOOR", in Zone="ZONE_4".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z4_CEILING", in Zone="ZONE_4".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z5_FLOOR", in Zone="ZONE_5".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z5_CEILING", in Zone="ZONE_5".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z6_FLOOR", in Zone="ZONE_6".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z6_CEILING", in Zone="ZONE_6".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z7_FLOOR", in Zone="ZONE_7".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z7_CEILING", in Zone="ZONE_7".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z8_FLOOR", in Zone="ZONE_8".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z8_CEILING", in Zone="ZONE_8".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Floor is upside down! Tilt angle=[0.0], should be near 180, Surface="Z9_FLOOR", in Zone="ZONE_9".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetVertices: Roof/Ceiling is upside down! Tilt angle=[180.0], should be near 0, Surface="Z9_CEILING", in Zone="ZONE_9".
+   **   ~~~   ** Automatic fix is attempted.
+   ** Warning ** GetSurfaceData: InterZone Surface Azimuths do not match as expected.
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z1_WALL_N_TO_Z4, Zone=ZONE_1
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z4_WALL_S_TO_Z1, Zone=ZONE_4
+   **   ~~~   ** ..surface class of first surface=Wall
+   **   ~~~   ** ..surface class of second surface=Wall
+   ** Warning ** GetSurfaceData: InterZone Surface Azimuths do not match as expected.
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z2_WALL_N_TO_Z5, Zone=ZONE_2
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z5_WALL_S_TO_Z2, Zone=ZONE_5
+   **   ~~~   ** ..surface class of first surface=Wall
+   **   ~~~   ** ..surface class of second surface=Wall
+   ** Warning ** GetSurfaceData: InterZone Surface Azimuths do not match as expected.
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z3_WALL_N_TO_Z6, Zone=ZONE_3
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z6_WALL_S_TO_Z3, Zone=ZONE_6
+   **   ~~~   ** ..surface class of first surface=Wall
+   **   ~~~   ** ..surface class of second surface=Wall
+   ** Warning ** GetSurfaceData: InterZone Surface Azimuths do not match as expected.
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z4_WALL_N_TO_Z7, Zone=ZONE_4
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z7_WALL_S_TO_Z4, Zone=ZONE_7
+   **   ~~~   ** ..surface class of first surface=Wall
+   **   ~~~   ** ..surface class of second surface=Wall
+   ** Warning ** GetSurfaceData: InterZone Surface Azimuths do not match as expected.
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z5_WALL_N_TO_Z8, Zone=ZONE_5
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z8_WALL_S_TO_Z5, Zone=ZONE_8
+   **   ~~~   ** ..surface class of first surface=Wall
+   **   ~~~   ** ..surface class of second surface=Wall
+   ** Warning ** GetSurfaceData: InterZone Surface Azimuths do not match as expected.
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z6_WALL_N_TO_Z9, Zone=ZONE_6
+   **   ~~~   **   Azimuth=0.0, Tilt=90.0, in Surface=Z9_WALL_S_TO_Z6, Zone=ZONE_9
+   **   ~~~   ** ..surface class of first surface=Wall
+   **   ~~~   ** ..surface class of second surface=Wall
+   ** Warning ** Indicated Zone Volume <= 0.0 for Zone=ZONE_3
+   **   ~~~   ** The calculated Zone Volume was=-27.00
+   **   ~~~   ** The simulation will continue with the Zone Volume set to 10.0 m3. 
+   **   ~~~   ** ...use Output:Diagnostics,DisplayExtraWarnings; to show more details on individual zones.
+   ** Warning ** Indicated Zone Volume <= 0.0 for Zone=ZONE_6
+   **   ~~~   ** The calculated Zone Volume was=-9.00
+   **   ~~~   ** The simulation will continue with the Zone Volume set to 10.0 m3. 
+   **   ~~~   ** ...use Output:Diagnostics,DisplayExtraWarnings; to show more details on individual zones.
+   ************* Testing Individual Branch Integrity
+   ************* All Branches passed integrity testing
+   ************* Testing Individual Supply Air Path Integrity
+   ************* All Supply Air Paths passed integrity testing
+   ************* Testing Individual Return Air Path Integrity
+   ************* All Return Air Paths passed integrity testing
+   ************* No node connection errors were found.
+   ************* Beginning Simulation
+   ** Warning ** Temperature out of range [-100. to 200.] (PsyPsatFnTemp)
+   **   ~~~   **  Routine=PsyTwbFnTdbWPb, Environment=ANNUAL, at Simulation time=03/27 20:30 - 20:34
+   **   ~~~   **  Input Temperature=-686.15
+   ************* Simulation Error Summary *************
+   *************
+   ************* ===== Recurring Error Summary =====
+   ************* The following recurring error messages occurred.
+   *************
+   *************  ** Warning ** Temperature out of range [-100. to 200.] (PsyPsatFnTemp)
+   *************  **   ~~~   **   This error occurred 1 total times;
+   *************  **   ~~~   **   during Warmup 0 times;
+   *************  **   ~~~   **   during Sizing 0 times.
+   *************  **   ~~~   **   Max=-686.153625 C  Min=-686.153625 C
+   *************
+   *************
+   ************* ===== Final Error Summary =====
+   ************* The following error categories occurred.  Consider correcting or noting.
+   ************* InterZone Surface Azimuths -- mismatch
+   ************* ..The azimuths (outward facing angle) of two interzone surfaces should not be the same.
+   ************* ..Normally, the absolute difference between the two azimuths will be 180 degrees.
+   ************* ..You can turn on the report: Output:Surfaces:List,Details; to inspect your surfaces.
+   ************* No Reporting Elements requested
+   ************* ..No Reporting elements have been requested. You will see no output values from your run.
+   ************* ..Add Output:Variable, Output:Meter, Output:Table:SummaryReports, Output:Table:Monthly, Output:Table:TimeBins
+   ************* ..objects to your input file to receive output values from the simulation.
+   *************
+   ************* EnergyPlus Warmup Error Summary. During Warmup: 0 Warning; 0 Severe Errors.
+   ************* EnergyPlus Sizing Error Summary. During Sizing: 0 Warning; 0 Severe Errors.
+   ************* EnergyPlus Completed Successfully-- 30 Warning; 0 Severe Errors; Elapsed Time=00hr 00min  5.27sec
