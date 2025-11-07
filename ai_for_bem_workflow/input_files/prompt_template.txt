@@ -6,10 +6,9 @@ BUILDING DESCRIPTION:
 
 REQUIREMENTS:
 1. Create a complete, valid EnergyPlus IDF file, version 24.1
-2. Include all necessary objects for a basic building simulation
-3. Use standard EnergyPlus object names and syntax
-4. Make sure to include SimulationControl, GlobalGeometryRules, RunPeriod, TimeStep, 
-5. Use reasonable default values for missing specifications
+2. Include only the following objects: version, simulation control, building, time step, run period, material, windowmaterial, construction, geometry rules, zone, building surface details, fenestration surface detail
+3. Use standard EnergyPlus object names and syntax 
+4. Use reasonable default values for missing specifications
 
 Please provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation.
 
