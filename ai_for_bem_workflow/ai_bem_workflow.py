@@ -203,7 +203,6 @@ class BuildingEnergyWorkflow:
                 # Step 4: Run EnergyPlus
                 idf_path = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
                 success = self.run_energyplus(idf_path, self.epw_file)
-                self.check_areas(idf_path)
                 if success:
                     break
                 # check for errors
