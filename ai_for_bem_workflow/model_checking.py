@@ -18,50 +18,46 @@ class ModelChecking:
 
 
     def extract_dataframe(self, start_idx, end_idx):
+        """
+        read a chunk of the csv as df, given start and end indices
+        first row is header
+        :param start_idx:
+        :param end_idx:
+        :return: df
+        """
         df = pd.read_csv(
             self.summary_table,
             skiprows=start_idx,
             nrows=end_idx - start_idx - 1,
             header=0
         )
-        # Remove the first empty column if it exists
+        # Remove the first column if empty
         if df.columns[0] == '' or df.iloc[:,0].isna().all():
             df = df.iloc[:, 1:]
         return df
 
-    def get_envelope_table(self):
+    def get_roof_area(self):
+        """
+        read Skylight-Roof Ratio table
+        :return:
+        Gross Roof Area
+        """
         with open(self.summary_table, 'r') as f:
             lines = f.readlines()
-        # Find the start of "Opaque Exterior" section
-        start_idx = None
+        # Find search key
         for i, line in enumerate(lines):
-            if 'Opaque Exterior' in line:
-                # The header is typically 2 lines after the section name
-                start_idx = i + 2
+            if 'Skylight-Roof Ratio' in lines[i - 3] and 'Gross Roof Area' in line:
+                parts = line.split(',')  # '4950.00\n'
+                total_area = float(parts[-1].strip())
                 break
-
-        # Find the end of the table (next empty line or next section)
-        end_idx = None
-        if start_idx:
-            for i in range(start_idx + 1, len(lines)):
-                # Stop at empty line or next section header
-                if lines[i].strip() == '' or lines[i].strip().startswith('Opaque Interior'):
-                    end_idx = i
-                    break
-        # Read the specific section
-        if start_idx and end_idx:
-            df = self.extract_dataframe(start_idx, end_idx)
-
-        return df
-
-    def get_ground_floor_area(self):
-        df_envelope = self.get_envelope_table()
-        df_gnd_floor = df_envelope[df_envelope["Construction"] == "GROUND FLOOR"]
-        gnd_floor_area = df_gnd_floor["Gross Area [m2]"].sum()
-        return gnd_floor_area
-
+        return total_area
 
     def get_WWR_table(self):
+        """
+        read Envelope, Window-Wall Ratio table
+        :return:
+        df
+        """
         with open(self.summary_table, 'r') as f:
             lines = f.readlines()
         # Find the start of "Opaque Exterior" section
@@ -86,6 +82,11 @@ class ModelChecking:
         return WWR
 
     def get_building_area(self):
+        """
+        read Building Area table
+        :return:
+        Total Building Area
+        """
         with open(self.summary_table, 'r') as f:
             lines = f.readlines()
         # Find search key
@@ -97,16 +98,16 @@ class ModelChecking:
         return total_area
 
     def get_envelope_props(self):
-        single_floor_area = self.get_ground_floor_area()
+        roof_area = self.get_roof_area()
         WWR = self.get_WWR(r"Above Ground Window-Wall Ratio [%]")
         total_wall_area = self.get_WWR(r"Above Ground Wall Area [m2]")
         total_window_area = self.get_WWR("Window Opening Area [m2]")
         total_floor_area = self.get_building_area()
-        return {"single_floor_area": single_floor_area, "WWR": WWR, "total_wall_area": total_wall_area,
+        return {"roof_area": roof_area, "WWR": WWR, "total_wall_area": total_wall_area,
                 "total_floor_area": total_floor_area, "total_window_area": total_window_area}
 
 def main():
-    my_check = ModelChecking("llm_gen_model_1Table2.csv","temp","temp")  #eplustbl
+    my_check = ModelChecking("eplustbl.csv","temp","temp")  #eplustbl
     props_dict = my_check.get_envelope_props()
     print(props_dict)
 
