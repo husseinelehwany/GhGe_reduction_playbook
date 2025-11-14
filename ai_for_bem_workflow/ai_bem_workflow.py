@@ -29,6 +29,7 @@ from api_clients import *
 from eppy import modeleditor
 from eppy.modeleditor import IDF
 from chat_history import *
+from error_parser import ErrorParser
 
 idd_file = "C:\EnergyPlusV24-1-0\Energy+.idd"
 IDF.setiddname(idd_file)
@@ -57,11 +58,14 @@ class BuildingEnergyWorkflow:
             self.client = DeepseekAPIClient("deepseek-reasoner")  # "deepseek-chat"  "deepseek-reasoner"
         elif client_type == "gemini":
             self.client = GeminiChats("gemini-2.5-pro")  #"gemini-2.5-pro"  "gemini-2.5-flash
+            self.validation_client = GeminiChats("gemini-2.5-flash")
         elif client_type == "openai":
             self.client = OpenaiAPIClient("gpt-5")
 
         with open(os.path.join("input_files", "prompt_template.txt") , 'r') as file:
             self.template_prompt = file.read()
+
+        self.error_parser = ErrorParser()
 
 
     def get_user_input(self) -> str:
@@ -92,6 +96,17 @@ class BuildingEnergyWorkflow:
             f.write(prompt)
 
         return prompt
+
+    def get_props_from_user_input(self, building_description: str):
+        json_format = {"roof_area": "roof_area",
+                       "WWR": "WWR",
+                       "total_wall_area": "total_wall_area",
+                       "total_floor_area": "total_floor_area",
+                       "total_window_area": "total_window_area"
+                       }
+        prompt = f"get the building properties of {building_description}. Give the output in this format only {json_format}. no explanation."
+        building_props = self.validation_client.call_client(prompt)
+        return building_props
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:
         # save user message to chat history
@@ -133,25 +148,23 @@ class BuildingEnergyWorkflow:
         return success
 
     def read_error_file(self, path):
-        # self.workflow_dir, 'out'
-        error_file = os.path.join(path, 'eplusout.err')
-        error_content = []
+        error_file = os.path.join(self.workflow_dir, 'eplusout.err')
+        errors = []
         if os.path.exists(error_file):
-            with open(error_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line_lower = line.lower()
-                    if '** severe  **' in line_lower or '**  fatal  **' in line_lower:
-                        error_content.append(line.strip())
-            if len(error_content) > 0:
-                print(error_content)
+            self.error_parser.parse(self.workflow_dir, "eplusout.err")
+            self.error_parser.save(self.workflow_dir, "errors_json.json")
+            errors = self.error_parser.get_severe_fatal()
+            if len(errors) > 0:
+                print(errors)
             else:
-                print("No errors found")
+                print("No errors found.")
         else:
             print("No error file generated.")
-        return error_content
+        return errors
 
     def create_error_prompt(self, error_messages):
-        errors_str = ", ".join(error_messages)
+        combined = [value for d in error_messages for value in d.values()]
+        errors_str = ", ".join(combined)
         prompt = f"Following errors occured after running the IDF file: {errors_str}. Fix errors and provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation."
         return prompt
 
@@ -185,37 +198,34 @@ class BuildingEnergyWorkflow:
             bool: True if workflow completed successfully
         """
 
-        case = "full_flow"
 
+        # Step 1: Get user input
+        building_description = self.get_user_input()
 
-        if case == "full_flow":
-            # Step 1: Get user input
-            building_description = self.get_user_input()
+        # Step 2: Create prompt
+        prompt = self.create_prompt(building_description)
 
-            # Step 2: Create prompt
-            prompt = self.create_prompt(building_description)
+        # Step 3: Generate IDF
+        for i in range(4):
+            print("=" * 60)
+            print(f"trial no: {i + 1}")
+            model = self.llm_generate_idf(prompt, i)
+            # Step 4: Run EnergyPlus
+            idf_path = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
+            success = self.run_energyplus(idf_path, self.epw_file)
+            if success:
+                break
+            # check for errors
+            errors = self.read_error_file(os.path.join(self.workflow_dir))
+            if len(errors) > 0:
+                print("="*60)
+                prompt = self.create_error_prompt(errors)
+            else:  # no errors
+                break
 
-            # Step 3: Generate IDF
-            for i in range(4):
-                print("=" * 60)
-                print(f"trial no: {i + 1}")
-                model = self.llm_generate_idf(prompt, i)
-                # Step 4: Run EnergyPlus
-                idf_path = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
-                success = self.run_energyplus(idf_path, self.epw_file)
-                if success:
-                    break
-                # check for errors
-                errors = self.read_error_file(os.path.join(self.workflow_dir))
-                if len(errors) > 0:
-                    print("="*60)
-                    prompt = self.create_error_prompt(errors)
-                else:  # no errors
-                    break
-
-            # save history & copy files
-            self.save_chat_history()
-            self.save_outputs()
+        # save history & copy files
+        self.save_chat_history()
+        self.save_outputs()
 
         return success
 

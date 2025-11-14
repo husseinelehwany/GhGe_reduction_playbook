@@ -20,6 +20,8 @@ from api_clients import *
 from eppy import modeleditor
 from eppy.modeleditor import IDF
 from chat_history import *
+from error_parser import ErrorParser
+
 
 idd_file = "C:\EnergyPlusV24-1-0\Energy+.idd"
 IDF.setiddname(idd_file)
@@ -48,11 +50,14 @@ class BuildingEnergyWorkflow:
             self.client = DeepseekAPIClient("deepseek-reasoner")  # "deepseek-chat"  "deepseek-reasoner"
         elif client_type == "gemini":
             self.client = GeminiChats("gemini-2.5-pro")  #"gemini-2.5-pro"  "gemini-2.5-flash
+            self.validation_client = GeminiChats("gemini-2.5-flash")
         elif client_type == "openai":
             self.client = OpenaiAPIClient("gpt-5")
 
         with open(os.path.join("input_files", "prompt_template.txt") , 'r') as file:
             self.template_prompt = file.read()
+
+        self.error_parser = ErrorParser()
 
 
     def get_user_input(self) -> str:
@@ -83,6 +88,17 @@ class BuildingEnergyWorkflow:
             f.write(prompt)
 
         return prompt
+
+    def get_props_from_user_input(self, building_description: str):
+        json_format = {"roof_area": "roof_area",
+                       "WWR": "WWR",
+                       "total_wall_area": "total_wall_area",
+                       "total_floor_area": "total_floor_area",
+                       "total_window_area": "total_window_area"
+                       }
+        prompt = f"get the building properties of {building_description}. Give the output in this format only {json_format}. no explanation."
+        message = self.validation_client.call_client(prompt)
+        return message
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:
         # save user message to chat history
@@ -159,6 +175,8 @@ class BuildingEnergyWorkflow:
             print("Simulation failed")
         return success
 
+
+
     def read_error_file(self, path):
         # self.workflow_dir, 'out'
         error_file = os.path.join(path, 'eplusout.err')
@@ -196,7 +214,8 @@ class BuildingEnergyWorkflow:
         return error_content
 
     def create_error_prompt(self, error_messages):
-        errors_str = ", ".join(error_messages)
+        combined = [value for d in error_messages for value in d.values()]
+        errors_str = ", ".join(combined)
         prompt = f"Following errors occured after running the IDF file: {errors_str}. Fix errors and provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation."
         return prompt
 
@@ -222,6 +241,64 @@ class BuildingEnergyWorkflow:
         for filename in os.listdir(self.workflow_dir):
             os.remove(os.path.join(self.workflow_dir, filename))
 
+    def parse_error_file(self, path):
+        error_file = os.path.join(path, 'eplusout.err')
+        with open(error_file, 'r') as f:
+            lines = f.readlines()
+        errors = []
+        current_type = None
+        current_content = []
+        for line in lines:
+            line = line.strip()
+
+            # Check for error type markers
+            if '** Warning **' in line:
+                # Save previous error if exists
+                if current_type and current_content:
+                    errors.append({
+                        "type": current_type,
+                        "content": " ".join(current_content)
+                    })
+                current_content = []
+                current_type = "Warning"
+                content = line.split('Warning', 1)[1].strip().lstrip('**').strip()
+                current_content.append(content)
+
+            elif '** Severe  **' in line:
+                if current_type and current_content:
+                    errors.append({
+                        "type": current_type,
+                        "content": " ".join(current_content)
+                    })
+                current_content = []
+                current_type = "Severe"
+                content = line.split('Severe', 1)[1].strip().lstrip('**').strip()
+                current_content.append(content)
+            elif '**  Fatal  **' in line:
+                if current_type and current_content:
+                    errors.append({
+                        "type": current_type,
+                        "content": " ".join(current_content)
+                    })
+                current_content = []
+                current_type = "Fatal"
+                content = line.split('Fatal', 1)[1].strip().lstrip('**').strip()
+                current_content.append(content)
+            elif '~~~' in line and current_type:
+                # Extract content after ~~~
+                content = line.split('~~~', 1)[1].strip().lstrip('**').strip()
+                if content:
+                    current_content.append(content)
+
+            # Add the last error
+        if current_type and current_content:
+            errors.append({
+                "type": current_type,
+                "content": " ".join(current_content)
+            })
+
+        return errors
+
     def run_workflow(self) -> bool:
         """
         Run the complete workflow
@@ -230,40 +307,48 @@ class BuildingEnergyWorkflow:
             bool: True if workflow completed successfully
         """
 
-        case = "full_flow"
+        # building_description = r"a 28 by 19 m building and height of 3m. It has 33% WWR with windows on all sides. it has 4 perimeter zones and 1 core zone. the envelope is relevant for newyork building built in 2022."
+        # bldg_props = self.get_props_from_user_input(building_description)
+        # print(bldg_props)
 
+        self.error_parser.parse(r"C:\Users\Hussein Elehwany\Desktop\Repos\GhGe_reduction_playbook\ai_for_bem_workflow\energy_workflow_output", "eplusout.err")
+        errors = self.error_parser.get_severe_fatal()
+        # errors = self.ghge_modeller.read_error_file(os.path.join(self.ghge_modeller.workflow_dir))
+        if len(errors) > 0:
+            prompt = self.create_error_prompt(errors)
 
-        if case == "full_flow":
-            # Step 1: Get user input
-            building_description = self.get_user_input()
+        # errors = self.parse_error_file(r"C:\Users\Hussein Elehwany\Desktop\Repos\GhGe_reduction_playbook\ai_for_bem_workflow\results\v51")
+        # print(errors)
+        # Step 1: Get user input
+        # building_description = self.get_user_input()
 
-            # Step 2: Create prompt
-            prompt = self.create_prompt(building_description)
+        # Step 2: Create prompt
+        # prompt = self.create_prompt(building_description)
 
-            # Step 3: Generate IDF
-            for i in range(4):
-                print("=" * 60)
-                print(f"trial no: {i + 1}")
-                model = self.llm_generate_idf(prompt, i)
-                # Step 4: Run EnergyPlus
-                idf_path = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
-                success = self.run_energyplus(idf_path, self.epw_file)
-                self.check_areas(idf_path)
-                if success:
-                    break
-                # check for errors
-                errors = self.read_error_file(os.path.join(self.workflow_dir))
-                if len(errors) > 0:
-                    print("="*60)
-                    prompt = self.create_error_prompt(errors)
-                else:  # no errors
-                    break
+        # Step 3: Generate IDF
+        # for i in range(1):
+        #     print("=" * 60)
+        #     print(f"trial no: {i + 1}")
+            # model = self.llm_generate_idf(prompt, i)
+            # Step 4: Run EnergyPlus
+            # idf_path = os.path.join(r"results\v45", f"llm_gen_model_3.idf")
+            # success = True  # self.run_energyplus(idf_path, self.epw_file)
+            # self.check_areas(idf_path)
+            # if success:
+            #     break
+            # # check for errors
+            # errors = self.read_error_file(os.path.join(self.workflow_dir))
+            # if len(errors) > 0:
+            #     print("="*60)
+            #     prompt = self.create_error_prompt(errors)
+            # else:  # no errors
+            #     break
 
-            # save history & copy files
-            self.save_chat_history()
-            self.save_outputs()
+        # save history & copy files
+        # self.save_chat_history()
+        # self.save_outputs()
 
-        return success
+        # return success
 
 def main():
     # Initialize workflow
