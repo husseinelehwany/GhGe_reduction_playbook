@@ -147,7 +147,7 @@ class BuildingEnergyWorkflow:
             print("Simulation failed")
         return success
 
-    def read_error_file(self, path):
+    def read_error_file(self):
         error_file = os.path.join(self.workflow_dir, 'eplusout.err')
         errors = []
         if os.path.exists(error_file):
