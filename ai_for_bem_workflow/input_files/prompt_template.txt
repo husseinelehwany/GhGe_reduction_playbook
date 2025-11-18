@@ -5,10 +5,13 @@ BUILDING DESCRIPTION:
 
 REQUIREMENTS:
 1. Create a complete, valid EnergyPlus IDF file, version 24.1
-2. Include only the following objects: version, simulation control, building, time step, run period, material, windowmaterial, construction, geometry rules, zone, building surface details, fenestration surface detail, zone infiltration design flow rate and any HVACTemplate
+2. Include only the following objects: version, simulation control, building, time step, run period, material, windowmaterial, construction, geometry rules, zone, building surface details, fenestration surface detail, zone infiltration design flow rate sizing period and any HVACTemplate
 3. Use standard EnergyPlus object names and syntax 
 4. Use reasonable default values for missing specifications
 5. The outer envelope must be fully enclosed. Each zone must be fully enclosed with surfaces.
+6. all internal walls have surface boundary condition.
+7. for AHU VAV systems, use only HVACtemplate:Thermostat, HVACtemplate:Zone:VAV, HVACtemplate:System:PackagedVAV
+8. Include outputs: table summary reports, variable and meter like the following example
 
 Please provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation.
 
