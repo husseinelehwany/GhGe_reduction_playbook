@@ -55,6 +55,7 @@ class GHGeBotGUI:
 
         # Step 2: Create prompt
         prompt = self.ghge_modeller.create_prompt(message)
+        bldg_props = self.ghge_modeller.get_props_from_user_input(message)
 
         for i in range(4):
             # Step 3: Generate IDF
@@ -74,21 +75,29 @@ class GHGeBotGUI:
 
             # check for errors
             self.append_text("Bot: checking errors...\n")
-            errors = self.ghge_modeller.read_error_file(os.path.join(self.ghge_modeller.workflow_dir))
+            errors = self.ghge_modeller.read_error_file()
+            # errors = self.ghge_modeller.read_error_file(os.path.join(self.ghge_modeller.workflow_dir))
             self.append_text(errors)
             if len(errors) > 0:
                 prompt = self.ghge_modeller.create_error_prompt(errors)
-            else:  # no errors
+                self.ghge_modeller.error_parser.delete()
+            else:  # no severe/fatal errors
+                # delete all errors including warnings, to avoid conflicts
+                self.ghge_modeller.error_parser.delete()
                 break
 
-        self.append_text("No more possible trials. Try different input prompt.\n")
-        try:
-            my_check = ModelChecking(os.path.join(self.ghge_modeller.workflow_dir, "eplustbl.csv"), "temp", "temp")
-            props_dict = my_check.get_envelope_props()
-            print(props_dict)
-            self.append_text(f"model specs: {props_dict}\n")
-        except Exception as e:
-            self.append_text("model specs: error found\n")
+        if success:
+            try:
+                my_check = ModelChecking(os.path.join(self.ghge_modeller.workflow_dir, "eplustbl.csv"), "temp", "temp")
+                props_model = my_check.get_envelope_props()
+                print(props_model)
+                self.append_text(f"model geometrical specs: {props_model}\n")
+            except Exception as e:
+                self.append_text("model specs: error found\n")
+            print(f"user defined geometrical specs {bldg_props}")
+        else:
+            self.append_text("No more possible trials. Try different input prompt.\n")
+
 
 
         self.ghge_modeller.save_chat_history()
