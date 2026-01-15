@@ -129,41 +129,6 @@ RunPeriod,
     Yes;                     !- Use Weather File Snow Indicators
 
 
-!-   ===========  ALL OBJECTS IN CLASS: SCHEDULETYPELIMITS ===========
-
-ScheduleTypeLimits,
-    Any Number;              !- Name
-
-
-!-   ===========  ALL OBJECTS IN CLASS: SCHEDULE:COMPACT ===========
-
-Schedule:Compact,
-    Office Activity Schedule,!- Name
-    Any Number,              !- Schedule Type Limits Name
-    Through: 12/31,          !- Field 1
-    For: AllDays,            !- Field 2
-    Until: 24:00,            !- Field 3
-    120.;                    !- Field 4
-
-
-!-   ===========  ALL OBJECTS IN CLASS: SCHEDULE:CONSTANT ===========
-
-Schedule:Constant,
-    people schedule,         !- Name
-    Any Number,              !- Schedule Type Limits Name
-    1;                       !- Hourly Value
-
-Schedule:Constant,
-    light schedule,          !- Name
-    Any Number,              !- Schedule Type Limits Name
-    1;                       !- Hourly Value
-
-Schedule:Constant,
-    equipment schedule,      !- Name
-    Any Number,              !- Schedule Type Limits Name
-    1;                       !- Hourly Value
-
-
 !-   ===========  ALL OBJECTS IN CLASS: MATERIAL ===========
 
 Material,
@@ -473,74 +438,6 @@ FenestrationSurface:Detailed,
     2.5,                     !- Vertex 4 X-coordinate {m}
     0,                       !- Vertex 4 Y-coordinate {m}
     2.5;                     !- Vertex 4 Z-coordinate {m}
-
-
-!-   ===========  ALL OBJECTS IN CLASS: PEOPLE ===========
-
-People,
-    occupants,               !- Name
-    Simple Room,             !- Zone or ZoneList or Space or SpaceList Name
-    ,                        !- Number of People Schedule Name
-    People,                  !- Number of People Calculation Method
-    ,                        !- Number of People
-    ,                        !- People per Floor Area {person/m2}
-    ,                        !- Floor Area per Person {m2/person}
-    0.3,                     !- Fraction Radiant
-    autocalculate,           !- Sensible Heat Fraction
-    ,                        !- Activity Level Schedule Name
-    0.0000000382,            !- Carbon Dioxide Generation Rate {m3/s-W}
-    No,                      !- Enable ASHRAE 55 Comfort Warnings
-    EnclosureAveraged,       !- Mean Radiant Temperature Calculation Type
-    ,                        !- Surface Name/Angle Factor List Name
-    ,                        !- Work Efficiency Schedule Name
-    ClothingInsulationSchedule,  !- Clothing Insulation Calculation Method
-    ,                        !- Clothing Insulation Calculation Method Schedule Name
-    ,                        !- Clothing Insulation Schedule Name
-    ,                        !- Air Velocity Schedule Name
-    ,                        !- Thermal Comfort Model 1 Type
-    ,                        !- Thermal Comfort Model 2 Type
-    ,                        !- Thermal Comfort Model 3 Type
-    ,                        !- Thermal Comfort Model 4 Type
-    ,                        !- Thermal Comfort Model 5 Type
-    ,                        !- Thermal Comfort Model 6 Type
-    ,                        !- Thermal Comfort Model 7 Type
-    ,                        !- Ankle Level Air Velocity Schedule Name
-    15.56,                   !- Cold Stress Temperature Threshold {C}
-    30;                      !- Heat Stress Temperature Threshold {C}
-
-
-!-   ===========  ALL OBJECTS IN CLASS: LIGHTS ===========
-
-Lights,
-    ,                        !- Name
-    ,                        !- Zone or ZoneList or Space or SpaceList Name
-    ,                        !- Schedule Name
-    LightingLevel,           !- Design Level Calculation Method
-    ,                        !- Lighting Level {W}
-    ,                        !- Watts per Floor Area {W/m2}
-    ,                        !- Watts per Person {W/person}
-    ,                        !- Return Air Fraction
-    ,                        !- Fraction Radiant
-    ,                        !- Fraction Visible
-    1,                       !- Fraction Replaceable
-    General,                 !- End-Use Subcategory
-    No;                      !- Return Air Fraction Calculated from Plenum Temperature
-
-
-!-   ===========  ALL OBJECTS IN CLASS: ELECTRICEQUIPMENT ===========
-
-ElectricEquipment,
-    ,                        !- Name
-    ,                        !- Zone or ZoneList or Space or SpaceList Name
-    ,                        !- Schedule Name
-    EquipmentLevel,          !- Design Level Calculation Method
-    ,                        !- Design Level {W}
-    ,                        !- Watts per Floor Area {W/m2}
-    ,                        !- Watts per Person {W/person}
-    ,                        !- Fraction Latent
-    ,                        !- Fraction Radiant
-    ,                        !- Fraction Lost
-    General;                 !- End-Use Subcategory
 
 
 !-   ===========  ALL OBJECTS IN CLASS: ZONEINFILTRATION:DESIGNFLOWRATE ===========
