@@ -11,8 +11,7 @@ REQUIREMENTS:
 5. create perimeter zones and core zone.
 6. The outer envelope must be fully enclosed. Each zone must be fully enclosed with surfaces.
 7. all internal walls have surface boundary condition.
-8. Include outputs: table summary reports, variable and meter like the following example.
-9. Do not add any HVAC objects.
+8. Do not add any HVAC objects.
 
 Please provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation.
 

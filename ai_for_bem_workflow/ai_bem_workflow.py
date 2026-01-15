@@ -30,6 +30,7 @@ from eppy import modeleditor
 from eppy.modeleditor import IDF
 from chat_history import *
 from error_parser import ErrorParser
+from mcp_provider import HVACTemplateMCP
 
 idd_file = "C:\EnergyPlusV24-1-0\Energy+.idd"
 IDF.setiddname(idd_file)
@@ -128,7 +129,7 @@ class BuildingEnergyWorkflow:
     def _energyplus_callback_function(self, state):
         pass
 
-    def run_energyplus(self, idf_path: str, epw_path: str) -> Tuple[bool, str]:
+    def run_energyplus(self, idf_path: str) -> Tuple[bool, str]:
         api = EnergyPlusAPI()
         state = api.state_manager.new_state()
 
@@ -137,7 +138,7 @@ class BuildingEnergyWorkflow:
 
         # run EPlus
         # -x short form to run expandobjects for HVACtemplates. see EnergyPlusEssentials.pdf p16
-        cmd_args = ['-w', epw_path, '-d', self.workflow_dir, '-x', idf_path]
+        cmd_args = ['-w', self.epw_file, '-d', self.workflow_dir, '-x', idf_path]
         result = api.runtime.run_energyplus(state, cmd_args)
         api.state_manager.delete_state(state)
         success = True if result == 0 else False
@@ -167,6 +168,30 @@ class BuildingEnergyWorkflow:
         errors_str = ", ".join(combined)
         prompt = f"Following errors occured after running the IDF file: {errors_str}. Fix errors and provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation."
         return prompt
+
+    def add_hvac_templates(self, building_desc, idf_path):
+        mcp = HVACTemplateMCP(idf_path)
+        idf = mcp.get_hvac_objects(building_desc)
+        return idf
+
+    def add_output_objects(self, idf_path, var_names, meter_names):
+        idf = IDF(idf_path)
+        idf.newidfobject("OUTPUT:TABLE:SUMMARYREPORTS", Report_1_Name="AllSummary")
+        idf.newidfobject("OUTPUTCONTROL:FILES", Output_CSV="Yes")
+        for var in var_names:
+            idf.newidfobject(
+                "OUTPUT:VARIABLE",
+                Key_Value="*",
+                Variable_Name=var,
+                Reporting_Frequency="Hourly"
+            )
+        for mtr in meter_names:
+            idf.newidfobject(
+                "OUTPUT:METER",
+                Key_Name=mtr,
+                Reporting_Frequency="Hourly"
+            )
+        idf.save()
 
     def save_chat_history(self):
         history = self.chat_history.get()
