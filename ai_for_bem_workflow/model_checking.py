@@ -1,11 +1,13 @@
 import os
+import numpy as np
 import pandas as pd
 import datetime as dt
+import warnings
 
 J_2_kwh = 1/3600000
 
 class ModelChecking:
-    def __init__(self, summary_table, variables_file, meters_file):
+    def __init__(self, summary_table, variables_file, meters_file, eio_file=None):
         """
         class that reads energyplus output files and extracts key info.
 
@@ -17,6 +19,7 @@ class ModelChecking:
         self.summary_table = summary_table
         self.variables_file = variables_file
         self.meters_file = meters_file
+        self.eio_file = eio_file
 
 
     def extract_dataframe(self, start_idx, end_idx):
@@ -74,7 +77,6 @@ class ModelChecking:
         # Read the specific section
         if start_idx and end_idx:
             df = self.extract_dataframe(start_idx, end_idx)
-
         return df
 
     def get_WWR(self, WWR_search_key):
@@ -122,22 +124,42 @@ class ModelChecking:
         gas_eui = df["NaturalGas:Facility [J](Hourly)"].sum() * J_2_kwh / area
         return {"Heating load": heat_load, "Cooling load": cool_load, "Electricity EUI": elct_eui,"Gas EUI": gas_eui}
 
+    def get_ceiling_height(self):
+        ceiling_height = []
+
+        with open(self.eio_file, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("Zone Information"):  #18
+                    values = [v.strip() for v in line.split(",")]
+                    ceiling_height.append(float(values[18]))
+
+        if len(np.unique(ceiling_height)) > 1:
+            warnings.warn("Different ceiling heights found!!", UserWarning)
+            print(ceiling_height)
+        return ceiling_height[0]
+
     def get_envelope_props(self):
         roof_area = self.get_roof_area()
         WWR = self.get_WWR(r"Above Ground Window-Wall Ratio [%]")
         total_wall_area = self.get_WWR(r"Above Ground Wall Area [m2]")
         total_window_area = self.get_WWR("Window Opening Area [m2]")
         total_floor_area = self.get_building_area()
+        ceiling_height = self.get_ceiling_height()
         return {"roof_area": roof_area, "WWR": WWR, "total_wall_area": total_wall_area,
-                "total_floor_area": total_floor_area, "total_window_area": total_window_area}
+                "total_floor_area": total_floor_area, "total_window_area": total_window_area, "ceiling_height": ceiling_height}
 
 def main():
-    my_check = ModelChecking(os.path.join("results", "v125", "eplustbl.csv"),
-                             os.path.join("results", "v125", "eplusout.csv"),
-                             os.path.join("results", "v125", "eplusmtr.csv"))
-    props_dict = my_check.get_envelope_props()
-    meters = my_check.get_meters()
-    print(meters)
+    scenario = 141
+    my_check = ModelChecking(os.path.join("results", f"v{scenario}", "eplustbl.csv"),
+                             os.path.join("results", f"v{scenario}", "eplusout.csv"),
+                             os.path.join("results", f"v{scenario}", "eplusmtr.csv"),
+                             os.path.join("results", f"v{scenario}", "eplusout.eio"))
+    # props_dict = my_check.get_envelope_props()
+    # meters = my_check.get_meters()
+    # print(meters)
+    ceiling = my_check.get_ceiling_height()
+    print(ceiling)
 
 if __name__ == "__main__":
     main()
