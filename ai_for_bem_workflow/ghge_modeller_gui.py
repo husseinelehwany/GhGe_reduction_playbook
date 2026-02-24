@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import scrolledtext
+from tkinter import filedialog
 import threading
 import time
 from ai_bem_workflow import *
@@ -13,24 +14,42 @@ class GHGeBotGUI:
         root.geometry("800x600")
         root.configure(bg="#3a3a3a")  #window colour: medium dark grey
 
-        # Chat display, bg boxes colour: darker grey, fg text colour: light grey
+        # Chat display (scrolled), bg boxes colour: darker grey, fg text colour: light grey
         self.chat_display = scrolledtext.ScrolledText(root, height=27, wrap=tk.WORD, state=tk.DISABLED, bg="#2d2d2d",
                                                       fg="#e0e0e0", insertbackground="white")
         self.chat_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # label
+        # Weather file selection field with default
+        file_frame = tk.Frame(root, bg="#3a3a3a")
+        file_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+
+        tk.Label(file_frame, text="Weather file:", bg="#3a3a3a", fg="#e0e0e0").pack(side=tk.LEFT)
+
+        tk.Button(file_frame, text="Browse", command=self._browse_weather_file, bg="#2d2d2d", fg="white").pack(side=tk.RIGHT)
+
+        self.epw_file = tk.StringVar(value="input_files/Ottawa_CWEC_2020.epw")
+        self.file_entry = tk.Entry(file_frame, textvariable=self.epw_file, bg="#2d2d2d", fg="#e0e0e0",insertbackground="white")
+        self.file_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 5))
+
+        # label - Enter your building description
         tk.Label(root, text="Enter your building description:", bg="#3a3a3a", fg="#e0e0e0").pack(anchor=tk.W, padx=10)
 
-        # Input
+        # Input text field
         self.input_text = tk.Text(root, height=3, bg="#2d2d2d", fg="#e0e0e0", insertbackground="white")
         self.input_text.pack(fill=tk.X, padx=10, pady=(0, 5))
         self.input_text.bind("<Return>", lambda e: self.send_message() or "break")
 
-        # Send button
+        # Generate button
         tk.Button(root, text="Generate", command=self.send_message, bg="#2d2d2d", fg="white").pack(pady=(0, 10))
 
-        # self.append_text(f"Enter your building description: \n")
-
+    def _browse_weather_file(self):
+        path = filedialog.askopenfilename(
+            title="Select weather file",
+            filetypes=[("EnergyPlus Weather", "*.epw"), ("All files", "*.*")],
+            initialfile=self.epw_file.get()
+        )
+        if path:
+            self.epw_file.set(path)
 
     def append_text(self, text):
         """
@@ -50,7 +69,7 @@ class GHGeBotGUI:
         threading.Thread(target=self.process, args=(message,), daemon=True).start()
 
     def process(self, message):
-        epw_path = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
+        # epw_path = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
         self.append_text(f"\nYou: {message}\n")
 
         # Step 2: Create prompt
@@ -64,7 +83,7 @@ class GHGeBotGUI:
             # Step 4: Run EnergyPlus
             self.append_text("Bot: executing simulation...\n")
             idf_path = os.path.join(self.ghge_modeller.workflow_dir, f"llm_gen_model_{i}.idf")
-            success = self.ghge_modeller.run_energyplus(idf_path, epw_path)
+            success = self.ghge_modeller.run_energyplus(idf_path, self.epw_file.get())
             # self.ghge_modeller.check_areas(idf_path)
             if success:
                 self.append_text("Simulation executed successfully\n")
@@ -103,10 +122,7 @@ class GHGeBotGUI:
         self.ghge_modeller.save_chat_history()
         self.ghge_modeller.save_outputs()
 
-
-
-epw_file = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
 root = tk.Tk()
-ghge_modeller = BuildingEnergyWorkflow("gemini", epw_file)
+ghge_modeller = BuildingEnergyWorkflow("gemini")
 app = GHGeBotGUI(root, ghge_modeller)
 root.mainloop()

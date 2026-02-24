@@ -40,7 +40,7 @@ class BuildingEnergyWorkflow:
     Main workflow class for building energy modeling using LLMs
     """
     
-    def __init__(self, client_type, epw_path):
+    def __init__(self, client_type):
         """
         Initialize the workflow
         Args:
@@ -48,7 +48,6 @@ class BuildingEnergyWorkflow:
             workflow_dir: path to store outputs
             template_prompt
         """
-        self.epw_file = epw_path
         self.workflow_dir = "energy_workflow_output"
         os.makedirs(self.workflow_dir, exist_ok=True)
         self.chat_history = ChatHistory(max_messages=10, max_tokens=150000)
@@ -129,7 +128,7 @@ class BuildingEnergyWorkflow:
     def _energyplus_callback_function(self, state):
         pass
 
-    def run_energyplus(self, idf_path: str) -> Tuple[bool, str]:
+    def run_energyplus(self, idf_path: str, epw_file: str) -> Tuple[bool, str]:
         api = EnergyPlusAPI()
         state = api.state_manager.new_state()
 
@@ -138,7 +137,7 @@ class BuildingEnergyWorkflow:
 
         # run EPlus
         # -x short form to run expandobjects for HVACtemplates. see EnergyPlusEssentials.pdf p16
-        cmd_args = ['-w', self.epw_file, '-d', self.workflow_dir, '-x', idf_path]
+        cmd_args = ['-w', epw_file, '-d', self.workflow_dir, '-x', idf_path]
         result = api.runtime.run_energyplus(state, cmd_args)
         api.state_manager.delete_state(state)
         success = True if result == 0 else False
