@@ -51,17 +51,11 @@ class BuildingEnergyWorkflow:
         """
         self.workflow_dir = "energy_workflow_output"
         os.makedirs(self.workflow_dir, exist_ok=True)
-        self.chat_history = ChatHistory(max_messages=10, max_tokens=150000)
+        # self.chat_history = ChatHistory(max_messages=10, max_tokens=150000)
         self.client_type = client_type
-        if client_type == "claude":
-            self.client = ClaudeAPIClient("claude-sonnet-4-20250514",20000)  # "claude-3-5-haiku-20241022"  # or claude-3-opus-20240229
-        elif client_type == "deepseek":
-            self.client = DeepseekAPIClient("deepseek-reasoner")  # "deepseek-chat"  "deepseek-reasoner"
-        elif client_type == "gemini":
-            self.client = GeminiChats("gemini-2.5-pro")  #"gemini-2.5-pro"  "gemini-2.5-flash
-            self.validation_client = GeminiChats("gemini-2.5-flash")
-        elif client_type == "openai":
-            self.client = OpenaiAPIClient("gpt-5")
+        model_name = {"gemini":"google/gemini-2.5-pro", "deepseek":"deepseek/deepseek-r1","claude":"anthropic/claude-sonnet-4.6","openai":"openai/gpt-5.2-pro"}
+        self.client = OpenRouterAPIClient(model_name[client_type], max_messages=2)
+        self.validation_client = OpenRouterAPIClient("deepseek/deepseek-r1")
 
         with open(os.path.join("input_files", "prompt_template.txt") , 'r') as file:
             self.template_prompt = file.read()
@@ -112,20 +106,12 @@ class BuildingEnergyWorkflow:
         return ast.literal_eval(building_props)
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:
-        # save user message to chat history
-        self.chat_history.append(role="user",content= prompt)
         # send message/history to llm
-        if self.client_type == "gemini":
-            message = self.client.call_client(prompt)
-        else:
-            message = self.client.call_client(self.chat_history.messages)
-        # save llm response to chat hsitory
-        self.chat_history.append(role="assistant", content=message)
+        message = self.client.call_client(prompt)
         # create idf
         file_name = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
         with open(file_name, "w") as file:
             file.write(message)
-
         return message
 
     def _energyplus_callback_function(self, state):
@@ -197,10 +183,8 @@ class BuildingEnergyWorkflow:
         idf.save()
 
     def save_chat_history(self):
-        history = self.chat_history.get()
         file_name = os.path.join(self.workflow_dir, "full_history.json")
-        with open(file_name, 'w') as f:
-            json.dump(history, f, indent=4)
+        self.client.save_history(file_name)
 
     def save_outputs(self):
         """

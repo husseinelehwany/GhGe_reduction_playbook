@@ -2,6 +2,8 @@ import anthropic
 from openai import OpenAI
 from google import genai
 from api_keys import *
+import requests
+import json
 
 class ClaudeAPIClient:
 
@@ -86,5 +88,87 @@ class GeminiChats:
             tmp_dict = {"role": message.role, "message": message.parts[0].text}
             history.append(tmp_dict)
         return history
+
+class OpenRouterAPIClient:
+    def __init__(self, model_name, max_messages=2):
+        self.api_key = openrouter_api_key
+        self.model = model_name
+        self.messages = []
+        self.max_messages = max_messages
+        self.history = []
+
+    def call_client(self, prompt):
+        self.append_messages({"role": "user", "content": prompt})
+        response = self.call_api()
+        message = response.json()["choices"][0]["message"]["content"]
+        self.append_messages({"role": "assistant", "content": message})
+        self.trim_messages()
+        return message
+
+    def trim_messages(self):
+        trim_len = len(self.messages)-self.max_messages
+        self.messages = self.messages[trim_len:]
+
+    def call_api(self):
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            data=json.dumps({
+                "model": self.model,
+                "messages": self.messages
+            })
+        )
+        return response
+
+    def append_messages(self, entry):
+        self.messages.append(entry)
+        self.history.append(entry)
+
+    def save_history(self, file_path):
+        with open(file_path, 'w') as f:
+            json.dump(self.history, f, indent=4)
+
+    def get_all_models(self, provider = ""):
+        # google, qwen, openai, anthropic, deepseek, openrouter/free
+        url = "https://openrouter.ai/api/v1/models/user"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        response = requests.get(url, headers=headers)
+        models = response.json()["data"]
+        fltr = [models[x]["id"] for x in range(len(models)) if provider in models[x]["id"]]
+        print("\n".join(fltr))
+
+    def get_model_details(self, model_id):
+        url = "https://openrouter.ai/api/v1/models/user"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        response = requests.get(url, headers=headers)
+        models = response.json()["data"]
+        fltr = [models[x] for x in range(len(models)) if model_id in models[x]["id"]]
+        for key, value in fltr[0].items():
+            print(f"{key}: {value}")
+
+    def get_credit(self):
+        url = "https://openrouter.ai/api/v1/credits"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        response = requests.get(url, headers=headers)
+        print(response.json())
+
+
+def main():
+    my_client = OpenRouterAPIClient("openrouter/free")
+    response = my_client.call_client("What is 2 plus 3")
+    print(my_client.messages[-1]['content'])
+    response = my_client.call_client("add 4 to your previous answer")
+    print(my_client.messages[-1]['content'])
+    response = my_client.call_client("add 3 to your previous answer")
+    print(my_client.messages[-1]['content'])
+    print(my_client.history)
+    # my_client.get_all_models("openai")
+    # my_client.get_model_details("openai/gpt-5.2-pro")
+    # my_client.get_credit()
+
+
+if __name__ == "__main__":
+    main()
+
 
 
