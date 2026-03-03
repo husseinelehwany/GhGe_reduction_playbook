@@ -13,6 +13,7 @@ Date: 2024
 import os
 import sys
 import json
+import ast
 import subprocess
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -102,11 +103,13 @@ class BuildingEnergyWorkflow:
                        "WWR": "WWR",
                        "total_wall_area": "total_wall_area",
                        "total_floor_area": "total_floor_area",
-                       "total_window_area": "total_window_area"
+                       "total_window_area": "total_window_area",
+                       "ceiling_height": "ceiling_height"
                        }
-        prompt = f"get the building properties of {building_description}. Give the output in this format only {json_format}. no explanation."
+        prompt = f"get the building properties of {building_description}. Give the output in this format only {json_format}." \
+                 f"All key in double quotes and values numerical. do not start the answer with ```json or end with ```. no explanation. Get the WWR as a number from 0 to 100."
         building_props = self.validation_client.call_client(prompt)
-        return building_props
+        return ast.literal_eval(building_props)
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:
         # save user message to chat history
@@ -177,6 +180,7 @@ class BuildingEnergyWorkflow:
         idf = IDF(idf_path)
         idf.newidfobject("OUTPUT:TABLE:SUMMARYREPORTS", Report_1_Name="AllSummary")
         idf.newidfobject("OUTPUTCONTROL:FILES", Output_CSV="Yes")
+        idf.newidfobject("OUTPUT:DIAGNOSTICS", Key_1="DisplayExtrawarnings")
         for var in var_names:
             idf.newidfobject(
                 "OUTPUT:VARIABLE",
