@@ -1,0 +1,36 @@
+{
+  "name": "user_building_properties",
+  "description": "Retrieve building properties from user description",
+  "strict": true,
+  "schema": {
+	"type": "object",
+		"properties": {
+			"roof_area": {
+				"type": "number",
+				"description": "roof_area"
+			},
+			"WWR": {
+				"type": "number",
+				"description": "WWR"
+			},
+			"total_wall_area": {
+				"type": "number",
+				"description": "total_wall_area"
+			},
+			"total_floor_area": {
+				"type": "number",
+				"description": "total_floor_area"
+			},
+			"total_window_area": {
+				"type": "number",
+				"description": "total_window_area"
+			},
+			"ceiling_height": {
+				"type": "number",
+				"description": "ceiling_height"
+			}
+		},
+		"required": ["roof_area", "WWR", "total_wall_area","total_floor_area","total_window_area","ceiling_height"],
+		"additionalProperties": false
+  }
+}

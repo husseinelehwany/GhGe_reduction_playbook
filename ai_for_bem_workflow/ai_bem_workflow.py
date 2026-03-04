@@ -53,9 +53,12 @@ class BuildingEnergyWorkflow:
         os.makedirs(self.workflow_dir, exist_ok=True)
         # self.chat_history = ChatHistory(max_messages=10, max_tokens=150000)
         self.client_type = client_type
-        model_name = {"gemini":"google/gemini-2.5-pro", "deepseek":"deepseek/deepseek-r1","claude":"anthropic/claude-sonnet-4.6","openai":"openai/gpt-5.2-pro"}
+        model_name = {"gemini": "google/gemini-2.5-pro",
+                      "deepseek": "deepseek/deepseek-r1",
+                      "claude": "anthropic/claude-sonnet-4.6",
+                      "openai": "openai/gpt-5.2-pro"}
         self.client = OpenRouterAPIClient(model_name[client_type], max_messages=2)
-        self.validation_client = OpenRouterAPIClient("deepseek/deepseek-r1")
+        self.validation_client = OpenRouterAPIClient("google/gemini-2.5-pro")
 
         with open(os.path.join("input_files", "prompt_template.txt") , 'r') as file:
             self.template_prompt = file.read()
@@ -93,16 +96,10 @@ class BuildingEnergyWorkflow:
         return prompt
 
     def get_props_from_user_input(self, building_description: str):
-        json_format = {"roof_area": "roof_area",
-                       "WWR": "WWR",
-                       "total_wall_area": "total_wall_area",
-                       "total_floor_area": "total_floor_area",
-                       "total_window_area": "total_window_area",
-                       "ceiling_height": "ceiling_height"
-                       }
-        prompt = f"get the building properties of {building_description}. Give the output in this format only {json_format}." \
-                 f"All key in double quotes and values numerical. do not start the answer with ```json or end with ```. no explanation. Get the WWR as a number from 0 to 100."
-        building_props = self.validation_client.call_client(prompt)
+        with open(r"input_files/user_building_props_schema.json", 'r') as file:
+            user_schema = json.load(file)
+        prompt = f"get the building properties of {building_description}. Get the WWR as a number from 0 to 100."
+        building_props = self.validation_client.struct_output(prompt, user_schema)
         return ast.literal_eval(building_props)
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:

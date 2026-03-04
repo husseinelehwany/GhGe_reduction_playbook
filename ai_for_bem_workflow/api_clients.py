@@ -128,6 +128,22 @@ class OpenRouterAPIClient:
         with open(file_path, 'w') as f:
             json.dump(self.history, f, indent=4)
 
+    def struct_output(self, prompt, schema):
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+            json={
+                "model": self.model,
+                "messages":[{"role":"user","content":prompt}],
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": schema
+                }
+            }
+        )
+        # print(response.status_code)
+        return response.json()
+
     def get_all_models(self, provider = ""):
         # google, qwen, openai, anthropic, deepseek, openrouter/free
         url = "https://openrouter.ai/api/v1/models/user"
@@ -154,17 +170,25 @@ class OpenRouterAPIClient:
 
 
 def main():
-    my_client = OpenRouterAPIClient("openrouter/free")
-    response = my_client.call_client("What is 2 plus 3")
-    print(my_client.messages[-1]['content'])
-    response = my_client.call_client("add 4 to your previous answer")
-    print(my_client.messages[-1]['content'])
-    response = my_client.call_client("add 3 to your previous answer")
-    print(my_client.messages[-1]['content'])
-    print(my_client.history)
-    # my_client.get_all_models("openai")
-    # my_client.get_model_details("openai/gpt-5.2-pro")
+    my_client = OpenRouterAPIClient("google/gemini-2.5-pro")  #"openrouter/free"
+    # response = my_client.call_client("What is 2 plus 3")
+    # print(my_client.messages[-1]['content'])
+    # response = my_client.call_client("add 4 to your previous answer")
+    # print(my_client.messages[-1]['content'])
+    # response = my_client.call_client("add 3 to your previous answer")
+    # print(my_client.messages[-1]['content'])
+    # print(my_client.history)
+    # my_client.get_all_models("qwen")
+    # my_client.get_model_details("qwen/qwen3-coder")
     # my_client.get_credit()
+
+    with open(r"input_files/user_props_schema.json", 'r') as file:
+        user_schema = json.load(file)
+
+    message = "a 50 by 33m 3-storey building and floor height of 4m. It has 33% WWR with continuous glazing on all sides. the envelope is relevant for Vancouver building built in 2013. it has AHU VAV system. create perimeter zones and core zone in each floor."
+    prompt = f"get the building properties of {message}. Get the WWR as a number from 0 to 100."
+    response = my_client.struct_output(prompt, user_schema)
+    print(response["choices"][0]["message"]["content"])
 
 
 if __name__ == "__main__":
