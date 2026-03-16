@@ -54,9 +54,12 @@ class BuildingEnergyWorkflow:
         # self.chat_history = ChatHistory(max_messages=10, max_tokens=150000)
         self.client_type = client_type
         model_name = {"gemini": "google/gemini-2.5-pro",
-                      "deepseek": "deepseek/deepseek-r1",
+                      "deepseek": "deepseek/deepseek-v3.2-speciale",
                       "claude": "anthropic/claude-sonnet-4.6",
-                      "openai": "openai/gpt-5.2-pro"}
+                      "openai": "openai/gpt-5.2-pro",
+                      "kimi": "moonshotai/kimi-k2.5",
+                      "minimax": "minimax/minimax-m2.5",
+                      "qwen": "qwen/qwen3.5-plus-02-15"}
         self.client = OpenRouterAPIClient(model_name[client_type], max_messages=2)
         self.validation_client = OpenRouterAPIClient("google/gemini-2.5-pro")
 
@@ -111,6 +114,25 @@ class BuildingEnergyWorkflow:
             file.write(message)
         return message
 
+    def add_base_objects(self, idf_path):
+        idf = IDF(idf_path)
+        if len(idf.idfobjects["VERSION"]) == 0:
+            idf.newidfobject("VERSION", Version_Identifier="24.1")
+        if len(idf.idfobjects["SIMULATIONCONTROL"]) == 0:
+            idf.newidfobject("SIMULATIONCONTROL",
+                             Do_Zone_Sizing_Calculation="Yes",
+                             Do_System_Sizing_Calculation="Yes",
+                             Do_Plant_Sizing_Calculation="Yes",
+                             Run_Simulation_for_Sizing_Periods="No",
+                             Run_Simulation_for_Weather_File_Run_Periods="Yes",
+                             Do_HVAC_Sizing_Simulation_for_Sizing_Periods="Yes")
+        if len(idf.idfobjects["TIMESTEP"]) == 0:
+            idf.newidfobject("TIMESTEP", Number_of_Timesteps_per_Hour=4)
+        if len(idf.idfobjects["RUNPERIOD"]) == 0:
+            idf.newidfobject("RUNPERIOD", Name="run_period",
+                             Begin_Month=1, Begin_Day_of_Month=1, End_Month=12, End_Day_of_Month=31)
+        idf.save()
+
     def _energyplus_callback_function(self, state):
         pass
 
@@ -151,7 +173,18 @@ class BuildingEnergyWorkflow:
     def create_error_prompt(self, error_messages):
         combined = [value for d in error_messages for value in d.values()]
         errors_str = ", ".join(combined)
-        prompt = f"Following errors occured after running the IDF file: {errors_str}. Fix errors and provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation."
+        prompt = f"Following errors occured after running the IDF file: {errors_str}. Fix errors and provide ONLY the" \
+                 f" IDF file content, starting with the first object and ending with the last object. " \
+                 f"Do not include explanation."
+        return prompt
+
+    def create_specs_prompt(self,building_description, perc_error):
+        perc_error_str = {k: f"{v}%" for k, v in perc_error.items()}
+        prompt = f"For this building description {building_description}, you provided the previous model." \
+                 f"The model runs succesfully, but some specs deviate from the user definition. " \
+                 f"This is the percentage error in the specs {perc_error_str}. Update existing objects without " \
+                 f"adding any new objects. Provide ONLY the IDF file content, starting with the first object and " \
+                 f"ending with the last object. Do not include explanation."
         return prompt
 
     def add_hvac_templates(self, building_desc, idf_path):
@@ -241,9 +274,12 @@ class BuildingEnergyWorkflow:
 def main():
     # Initialize workflow
     epw_path = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
-    workflow = BuildingEnergyWorkflow("gemini", epw_path)
+    workflow = BuildingEnergyWorkflow("gemini")
     # Run workflow
-    success = workflow.run_workflow()
+    # success = workflow.run_workflow()
+    bldg_desc = "L-shaped building, the longer edge is 16-by-6m and the shorter edge is 9 by 5m. It is a single-storey with 3.4m ceiling height. It has 50% WWR. It is modelled as single zone with envelope relevant for Ottawa building built in 2020. it has AHU VAV system."
+    output = workflow.get_props_from_user_input(bldg_desc)
+    print(output)
 
 if __name__ == "__main__":
     main()
