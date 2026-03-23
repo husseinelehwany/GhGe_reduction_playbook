@@ -1,0 +1,60 @@
+{
+  "name": "internal_gains",
+  "strict": true,
+  "schema": {
+	"type": "object",
+	"properties": {
+	  "people": {
+        "type": "object",
+        "properties": {
+          "people_density": {
+            "type": "object",
+            "properties": {
+				"calculation_method": {
+					"type": "string",
+					"enum": ["number_of_people", "people/area", "area/person"]
+				},
+				"value": {
+					"type": "number",
+					"description": "The amount of people according to the calculation_method"
+				}
+			}	
+          },
+          "activity_level_W": {
+            "type": "number",
+            "description": "Metabolic rate per person in Watts (seated=120, office=140, standing=160, light work=200)"
+          },
+          "occupancy_start": {
+            "type": "string",
+            "description": "HH:MM 24-h start time (e.g. 08:00)"
+          },
+          "occupancy_end": {
+            "type": "string",
+            "description": "HH:MM 24-h end time (e.g. 18:00)"
+          }
+        },
+        "required": ["people_density", "activity_level_W", "occupancy_start", "occupancy_end"]
+      },
+	  "light": {
+            "type": "object",
+            "properties": {
+                "watts_per_m2": {"type": "number", "description": "Lighting power density in W/m²"}, 
+                "after_hours_fraction": {"type": "number", "description": "fraction during unoccupied hours (0–1)"}
+            },
+            "required": ["watts_per_m2", "after_hours_fraction"]
+        },
+	  "equipment": {
+            "type": "object",
+            "properties": {
+                "electric_watts_per_m2": {"type": "number", "description": "Electric equipment power density in W/m²"},
+                "after_hours_fraction": {"type": "number", "description": "fraction during unoccupied hours (0–1)"}
+            },
+            "required": ["electric_watts_per_m2", "after_hours_fraction"]
+        }
+	},
+	"required": ["people", "light", "equipment"],
+	"additionalProperties": false
+  }
+}
+  
+
