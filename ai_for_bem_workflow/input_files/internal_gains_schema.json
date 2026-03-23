@@ -12,7 +12,7 @@
             "properties": {
 				"calculation_method": {
 					"type": "string",
-					"enum": ["number_of_people", "people/area", "area/person"]
+					"enum": ["People", "People/Area", "Area/Person"]
 				},
 				"value": {
 					"type": "number",
@@ -35,24 +35,48 @@
         },
         "required": ["people_density", "activity_level_W", "occupancy_start", "occupancy_end"]
       },
-	  "light": {
+	  "lights": {
             "type": "object",
             "properties": {
-                "watts_per_m2": {"type": "number", "description": "Lighting power density in W/m²"}, 
-                "after_hours_fraction": {"type": "number", "description": "fraction during unoccupied hours (0–1)"}
+                "lights_density": {
+					"type": "object",
+					"properties": {
+						"calculation_method": {
+							"type": "string",
+							"enum": ["LightingLevel", "Watts/Area", "Watts/Person"]
+						},
+						"value": {
+							"type": "number",
+							"description": "The amount of lights according to the calculation_method"
+						}
+					}
+				},
+				"after_hours_fraction": {"type": "number", "description": "fraction during unoccupied hours (0–1)"}
             },
-            "required": ["watts_per_m2", "after_hours_fraction"]
+            "required": ["lights_density", "after_hours_fraction"]
         },
-	  "equipment": {
-            "type": "object",
+	  "electric_equipment": {
+		  "type": "object",
             "properties": {
-                "electric_watts_per_m2": {"type": "number", "description": "Electric equipment power density in W/m²"},
-                "after_hours_fraction": {"type": "number", "description": "fraction during unoccupied hours (0–1)"}
+                "electric_equipment_density": {
+					"type": "object",
+					"properties": {
+						"calculation_method": {
+							"type": "string",
+							"enum": ["EquipmentLevel", "Watts/Area", "Watts/Person"]
+						},
+						"value": {
+							"type": "number",
+							"description": "The amount of equipment power according to the calculation_method"
+						}
+					}
+				},
+				"after_hours_fraction": {"type": "number", "description": "fraction during unoccupied hours (0–1)"}
             },
-            "required": ["electric_watts_per_m2", "after_hours_fraction"]
+            "required": ["electric_equipment_density", "after_hours_fraction"]  
         }
 	},
-	"required": ["people", "light", "equipment"],
+	"required": ["people", "lights", "electric_equipment"],
 	"additionalProperties": false
   }
 }
