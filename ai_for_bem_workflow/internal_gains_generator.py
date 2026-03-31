@@ -49,6 +49,7 @@ class InternalGainsGenerator:
     """
 
     def __init__(self, idf_path):
+        self.idf_path = idf_path
         self.request_client = OpenRouterAPIClient("google/gemini-3.1-flash-lite-preview")
         self.idf = IDF(idf_path)
         request_template_path = os.path.join("input_files", "internal_gains_schema.json")
@@ -105,6 +106,73 @@ class InternalGainsGenerator:
             Field_4=1,
         )
 
+    def occupancy_schedule(self, people_dict, name="Occupancy Schedule"):
+        """
+        Build a Schedule:Compact (fraction 0/1) from the people dict fields:
+          occupancy_start  – HH:MM 24-h start time
+          occupancy_end    – HH:MM 24-h end time
+          occupied_days    – list of day names (Monday … Sunday)
+
+        Day-type logic:
+          Mon–Sun  → AllDays          (no unoccupied-day block needed)
+          Mon–Fri  → Weekdays / Weekends for the off-days
+          Sat–Sun  → Weekends / Weekdays for the off-days
+          anything else → individual day names joined by space,
+                          then AllOtherDays at 0 for the rest
+        """
+        start = people_dict["occupancy_start"]   # e.g. "08:00"
+        end   = people_dict["occupancy_end"]     # e.g. "18:00"
+        days  = set(people_dict["occupied_days"])
+
+        ALL_DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday",
+                    "Friday", "Saturday", "Sunday"}
+        WEEKDAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
+        WEEKENDS = {"Saturday", "Sunday"}
+
+        if days == ALL_DAYS:
+            occupied_str   = "AllDays"
+            unoccupied_str = None
+        elif days == WEEKDAYS:
+            occupied_str   = "Weekdays"
+            unoccupied_str = "Weekends"
+        elif days == WEEKENDS:
+            occupied_str   = "Weekends"
+            unoccupied_str = "Weekdays"
+        else:
+            day_order = ["Monday", "Tuesday", "Wednesday",
+                         "Thursday", "Friday", "Saturday", "Sunday"]
+            occupied_str   = " ".join(d for d in day_order if d in days)
+            unoccupied_str = "AllOtherDays" if days != ALL_DAYS else None
+
+        fields = {}
+        idx = 1
+
+        fields[f"Field_{idx}"] = "Through: 12/31"; idx += 1
+
+        # --- occupied-days block ---
+        fields[f"Field_{idx}"] = f"For: {occupied_str}"; idx += 1
+        if start != "00:00":
+            fields[f"Field_{idx}"] = f"Until: {start}"; idx += 1
+            fields[f"Field_{idx}"] = 0;                  idx += 1
+        fields[f"Field_{idx}"] = f"Until: {end}"; idx += 1
+        fields[f"Field_{idx}"] = 1;               idx += 1
+        if end != "24:00":
+            fields[f"Field_{idx}"] = "Until: 24:00"; idx += 1
+            fields[f"Field_{idx}"] = 0;              idx += 1
+
+        # --- unoccupied-days block ---
+        if unoccupied_str:
+            fields[f"Field_{idx}"] = f"For: {unoccupied_str}"; idx += 1
+            fields[f"Field_{idx}"] = "Until: 24:00";            idx += 1
+            fields[f"Field_{idx}"] = 0;                         idx += 1
+
+        self.idf.newidfobject(
+            "SCHEDULE:COMPACT",
+            Name=name,
+            Schedule_Type_Limits_Name="Fraction",
+            **fields,
+        )
+
     def activity_schedule(self,name="Office Activity Schedule", activity=120):
         self.idf.newidfobject(
             "SCHEDULE:COMPACT",
@@ -127,7 +195,7 @@ class InternalGainsGenerator:
         self.activity_schedule(activity_schedule_name, activity_level)
         if len(self.idf.idfobjects["PEOPLE"]) == 0:
             self.idf.newidfobject("PEOPLE")
-            self.idf.idfobjects["PEOPLE"][-1].Name = "Occupancy"
+            self.idf.idfobjects["PEOPLE"][-1].Name = "Occupancy Schedule"
             self.idf.idfobjects["PEOPLE"][-1].Zone_or_ZoneList_or_Space_or_SpaceList_Name = "all_zones"
             self.idf.idfobjects["PEOPLE"][-1].Number_of_People_Schedule_Name = "Always On"
             self.idf.idfobjects["PEOPLE"][-1].Number_of_People_Calculation_Method = calculation_method # People , People/Area , Area/Person
@@ -145,7 +213,6 @@ class InternalGainsGenerator:
 
         # print(self.idf.idfobjects["PEOPLE"][-1].fieldnames)
         # self.idf.idfobjects["ZONELIST"].pop(-1)
-        self.idf.save(os.path.join("input_files", "shoebox_test_mcp_modified.idf"))
 
     def build_lights_obj(self, lights_dict):
         calculation_method = lights_dict["lights_density"]["calculation_method"]
@@ -163,8 +230,6 @@ class InternalGainsGenerator:
             elif calculation_method == "Watts/Person":
                 self.idf.idfobjects["LIGHTS"][-1].Watts_per_Person = lights_value
 
-        self.idf.save(os.path.join("input_files", "shoebox_test_mcp_modified.idf"))
-
     def build_electric_equipment_obj(self, equipment_dict):
         calculation_method = equipment_dict["electric_equipment_density"]["calculation_method"]
         equipment_value = equipment_dict["electric_equipment_density"]["value"]
@@ -181,18 +246,43 @@ class InternalGainsGenerator:
             elif calculation_method == "Watts/Person":
                 self.idf.idfobjects["ELECTRICEQUIPMENT"][-1].Watts_per_Person = equipment_value
 
-        self.idf.save(os.path.join("input_files", "shoebox_test_mcp_modified.idf"))
+    def add_gains_to_idf(self, building_description: str) -> None:
+        """
+        Full pipeline: parse description → generate EnergyPlus objects → save IDF.
+        Call this from external workflows instead of chaining individual methods.
+        """
+        print("InternalGainsGenerator: parsing description...")
+        json_response = self.generate_internal_gains_request(building_description)
+        print(f"InternalGainsGenerator: received gains data: {json.dumps(json_response)}")
+
+        people_dict = json_response.get("people", {})
+        lights_dict = json_response.get("lights", {})
+        equipment_dict = json_response.get("electric_equipment", {})
+
+        if people_dict:
+            self.occupancy_schedule(people_dict)
+            self.build_people_obj(people_dict)
+        if lights_dict:
+            self.build_lights_obj(lights_dict)
+        if equipment_dict:
+            self.build_electric_equipment_obj(equipment_dict)
+
+        self.idf.save(self.idf_path)
+        print(f"InternalGainsGenerator: saved to {self.idf_path}")
+
 
 def main() -> None:
     idf_file = os.path.join("input_files","shoebox_test_mcp.idf")
     my_gains = InternalGainsGenerator(idf_file)
-    loads_description = "A medium activity office with an area of 1000 m2 that has 20 m2 per person with florescent lights and a PC for each employee. Thw wroking hours are eight to nine."
+    loads_description = "A retail building with that has 20 m2/person with energy-saving lights. The working hours are from 12:00 to 22:00 on all days except Sundays. The building has 2 printers and 1 pc."
     json_response = my_gains.generate_internal_gains_request(loads_description)
-    print(json_response)
-
+    print(json.dumps(json_response))
+    with open("internal_gains.json", "w") as f:
+        json.dump(json_response, f, indent=2)
     people_dict = json_response.get("people", {})
     lights_dict = json_response.get("lights", {})
     equipment_dict = json_response.get("electric_equipment", {})
+    my_gains.occupancy_schedule(people_dict)
     my_gains.build_people_obj(people_dict)
     my_gains.build_lights_obj(lights_dict)
     my_gains.build_electric_equipment_obj(equipment_dict)

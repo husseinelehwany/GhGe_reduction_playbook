@@ -1,29 +1,34 @@
+import json
 from time import time
 
 
 from ai_bem_workflow import *
 from model_checking import ModelChecking
+from internal_gains_generator import InternalGainsGenerator
 
 
 epw_file = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
 ghge_modeller = BuildingEnergyWorkflow("gemini")
-
-# message = "L-shaped building, the longer edge is 16-by-6m and the shorter edge is 9 by 5m. It is a single-storey with 3.4m ceiling height. It has 50% WWR. It is modelled as single zone with envelope relevant for Ottawa building built in 2020. it has AHU VAV system."
-# message = "The building footprint is 35 m wide and 30 m long in a T-shaped configuration single storey, single zone. The top bar measures 35 m wide by 12 m deep. " \
-#           "The central stem projects 18 m downward from the midpoint of the top bar and is 9 m wide. It has 40% WWR. " \
-#           "the envelope is relevant for Ottawa building built in 2020. it has AHU VAV system"
-# message = "a 5-by-5m small office building with 4m ceiling height and a 2-by-2m south facing window."
-# message = "a 50 by 33m 3-storey building and floor height of 4m. It has 33% WWR with continuous glazing on all sides. the envelope is relevant for Vancouver building built in 2013. it has AHU VAV system. create perimeter zones and core zone in each floor."
-# message = "5 by 5m single room with ceiling height 4m and no windows. it has ahu vav system"
-message = "a 28 by 19 m building and height of 3m. It has 21% WWR with windows on all sides. create perimeter zones and core zone in each floor. the envelope is relevant for Ottawa building built in 2022. it has AHU VAV system"
+user_description = {"layout": "L-shaped building", "a":16, "b":9, "c": 11, "d":3, "ceiling_height":3.4,
+                    "number_of_floors":1, "WWR": 0.5, "details": "It is modelled as single zone with envelope relevant for Ottawa building built in 2020. it has AHU VAV system."}
+# user_description = {"layout": "T-shaped building", "a":35, "b":12, "c": 18, "d":9, "ceiling_height":4,
+#                     "number_of_floors":1, "WWR": 0.4, "details": "Divide the 2 parts of the T-shape into 2 zones. the envelope is relevant for Ottawa building built in 2020. it has AHU VAV system"}
+# user_description = {"layout": "Rectangular building", "a":28, "b":19, "c": None, "d":None, "ceiling_height":3,
+#                     "number_of_floors":1, "WWR": 0.21,
+#                     "details": "Divide the model into perimeter zones and core zone. the envelope is relevant for Ottawa building built in 2022. it has AHU VAV system"}
 ghge_modeller.epw_file = os.path.join("input_files", 'CAN_ON_Ottawa.716280_CWEC.epw')
+
+internal_gains_description = (
+    "Open-plan office building, 10 m2/person, standard office lighting at 10 W/m2, "
+    "and office equipment at 15 W/m2. Occupied Monday to Friday from 08:00 to 18:00."
+)
 
 enable_llm_loop = True  # used for testing
 enable_hvac = True
 
 for i in range(1):
     # Step 2: Create prompt
-    prompt = ghge_modeller.create_prompt(message)
+    prompt = ghge_modeller.create_prompt(user_description)
     var_names = ["Site Outdoor Air Drybulb Temperature", "Zone Mean Air Temperature"]
     meter_names = ["Heating:EnergyTransfer", "Cooling:EnergyTransfer","Electricity:Facility","NaturalGas:Facility"]
     models_count = 0
@@ -62,13 +67,18 @@ for i in range(1):
                 break
 
         if success:
+            # Step 5.5: add internal gains
+            print("Bot: adding internal gains...\n")
+            gains_gen = InternalGainsGenerator(idf_path)
+            gains_gen.add_gains_to_idf(user_description)
+
             # Step 6: add outputs
             ghge_modeller.add_output_objects(idf_path, var_names, meter_names)
 
             # Step 7: add HVAC, then run model
             if enable_hvac:
                 print("Bot: adding HVAC components...\n")
-                idf = ghge_modeller.add_hvac_templates(message, idf_path)
+                idf = ghge_modeller.add_hvac_templates(user_description, idf_path)
                 print("Bot: executing simulation...\n")
                 success = ghge_modeller.run_energyplus(idf_path, epw_file)
 
@@ -87,12 +97,13 @@ for i in range(1):
             except Exception as e:
                 print("model specs: error found\n")
             # get user-defined properties
-            user_def_props = ghge_modeller.get_props_from_user_input(message)
+            # user_def_props = ghge_modeller.get_props_from_user_input(user_description)
+            user_def_props = ghge_modeller.get_groundtruth(building_description=user_description)
             print(f"User defined specs: {user_def_props}\n")
             percent_error, success = my_check.get_anomalous_specs(model_props, user_def_props, tolerance=10)
             print(percent_error)
             if percent_error:
-                prompt = ghge_modeller.create_specs_prompt(message, percent_error)
+                prompt = ghge_modeller.create_specs_prompt(user_description, percent_error)
             else:
                 break
 

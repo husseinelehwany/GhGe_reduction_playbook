@@ -31,9 +31,16 @@
           "occupancy_end": {
             "type": "string",
             "description": "HH:MM 24-h end time (e.g. 18:00)"
-          }
+          },
+		  "occupied_days": {
+			  "type": "array",
+			  "items": {
+				  "type": "string",
+				  "enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+			  }
+		  }
         },
-        "required": ["people_density", "activity_level_W", "occupancy_start", "occupancy_end"]
+        "required": ["people_density", "activity_level_W", "occupancy_start", "occupancy_end", "occupied_days"]
       },
 	  "lights": {
             "type": "object",
