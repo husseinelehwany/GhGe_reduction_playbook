@@ -88,8 +88,8 @@ class BuildingEnergyWorkflow:
         """
         with open(os.path.join("input_files", "example_file_prompt.idf") , 'r') as file:
             idf_content = file.read()
-
-        prompt = self.template_prompt.format(building_description=building_description, idf_example=idf_content)
+        building_layout = self.get_building_layout(building_description["layout"])
+        prompt = self.template_prompt.format(building_description=json.dumps(building_description),building_layout=building_layout , idf_example=idf_content)
         
         # Save prompt for reference
         prompt_file = os.path.join( self.workflow_dir, "full_prompt.txt")
@@ -98,12 +98,58 @@ class BuildingEnergyWorkflow:
 
         return prompt
 
+    def get_building_layout(self, layout_name: str):
+        '''
+        :param layout_name: Rectangular building, L-shaped building, Hollow building, U-shaped building, T-shaped building
+        :return: ascii diagram of a building layout
+        '''
+        filepath = r"input_files/building_layouts.txt"
+        with open(filepath, 'r') as f:
+            content = f.read()
+        for section in content.split('**********'):
+            if f'name: {layout_name}' in section:
+                return section.split('layout:')[1]
+        return None
+
     def get_props_from_user_input(self, building_description: str):
         with open(r"input_files/user_building_props_schema.json", 'r') as file:
             user_schema = json.load(file)
-        prompt = f"get the building properties of {building_description}. Get the WWR as a number from 0 to 100."
-        building_props = self.validation_client.struct_output(prompt, user_schema)
+        layout = self.get_building_layout(building_description["layout"])
+        prompt = f"get the building properties of {building_description} with this layout and dimensions {layout}. Get the WWR as a number from 0 to 100."
+        building_props = self.validation_client.structured_output(prompt, user_schema)
         return ast.literal_eval(building_props)
+
+    def get_groundtruth(self, building_description: dict):
+        a = building_description["a"]
+        b = building_description["b"]
+        c = building_description["c"]
+        d = building_description["d"]
+        no_of_floors = building_description["number_of_floors"]
+        ceiling_height = building_description["ceiling_height"]
+        WWR = building_description["WWR"]
+        area = 1
+        perimeter = 1
+        if building_description["layout"] == "Rectangular building":
+            area = a * b
+            perimeter = 2 * (a + b)
+        elif building_description["layout"] == "L-shaped building":
+            area = a * b - c * d
+            perimeter = a + b + c + d + a - c + b - d
+        elif building_description["layout"] == "T-shaped building":
+            area = a * b + c * d
+            perimeter = a * 2 + (b + c) * 2
+        elif building_description["layout"] == "U-shaped building":
+            area = a * b - c * d
+            perimeter = 2 * (a + b + c)
+        elif building_description["layout"] == "Hollow building":
+            area = a * b - c * d
+            perimeter = 2 * (a + b + c + d)
+
+        total_floor_area = area * no_of_floors
+        wall_area = perimeter * ceiling_height * no_of_floors
+        window_area = WWR * wall_area
+        return {"roof_area": area, "WWR": WWR*100, "total_floor_area": total_floor_area, "total_wall_area": wall_area,
+              "total_window_area": window_area, "ceiling_height": ceiling_height}
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:
         # send message/history to llm
@@ -180,7 +226,8 @@ class BuildingEnergyWorkflow:
 
     def create_specs_prompt(self,building_description, perc_error):
         perc_error_str = {k: f"{v}%" for k, v in perc_error.items()}
-        prompt = f"For this building description {building_description}, you provided the previous model." \
+        layout = self.get_building_layout(building_description["layout"])
+        prompt = f"For this building description {building_description} with this ASCII layout and dimensions {layout}, you provided the previous model." \
                  f"The model runs succesfully, but some specs deviate from the user definition. " \
                  f"This is the percentage error in the specs {perc_error_str}. Update existing objects without " \
                  f"adding any new objects. Provide ONLY the IDF file content, starting with the first object and " \
@@ -278,8 +325,17 @@ def main():
     # Run workflow
     # success = workflow.run_workflow()
     bldg_desc = "L-shaped building, the longer edge is 16-by-6m and the shorter edge is 9 by 5m. It is a single-storey with 3.4m ceiling height. It has 50% WWR. It is modelled as single zone with envelope relevant for Ottawa building built in 2020. it has AHU VAV system."
-    output = workflow.get_props_from_user_input(bldg_desc)
-    print(output)
+    # output = workflow.get_props_from_user_input(bldg_desc)
+    # print(output)
+    user_description = {"layout": "Rectangular building", "a": 28, "b": 19, "c": None, "d": None, "ceiling_height": 3,
+                        "number_of_floors": 1, "WWR": 0.21,
+                        "details": "Divide the model into perimeter zones and core zone. the envelope is relevant for Ottawa building built in 2022. it has AHU VAV system"}
+
+    layout = workflow.get_building_layout(user_description["layout"])
+    print(layout)
+    user_def_props = workflow.get_groundtruth(building_description=user_description)
+    print(f"User defined specs: {user_def_props}\n")
+
 
 if __name__ == "__main__":
     main()
