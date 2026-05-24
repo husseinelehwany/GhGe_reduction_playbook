@@ -1,0 +1,29 @@
+{
+  "name": "get_hvac_template",
+  "description": "Retrieve an HVAC template with optional parameter overrides",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "HVAC_exists": {"type": "boolean"},
+	  "template_id": {
+        "type": "string",
+        "enum": ["None", "Packaged_VAV", "Heat_pump_air2air", "CAV_System"]
+      },
+      "overrides": {
+        "type": "object",
+        "properties": {
+          "control_zone": {"type": "string"},
+		  "economizer_type": { "type": "string" , "enum": ["NoEconomizer", "DifferentialDryBulb"]},
+          "reheat_coil_type": { "type": "string" , "enum": ["None","Gas","Electricity"]},
+		  "baseboard": { "type": "string" , "enum": ["None","Electric"]},
+		  "night_cycle_control": { "type": "string" , "enum": ["StayOff","CycleOnAny"]},
+		  "heat_recovery": { "type": "string" , "enum": ["None","Sensible","Enthalpy"]},
+		  "outdoor_air_per_person": { "type": "number" },
+		  "outdoor_air_per_area": { "type": "number" },
+		  "unconditioned_zones": {"type": "string"}
+        }
+      }
+    },
+    "required": ["HVAC_exists", "template_id"]
+  }
+}
