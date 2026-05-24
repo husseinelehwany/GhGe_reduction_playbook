@@ -65,10 +65,9 @@ class InternalGainsGenerator:
         - Give the output in the provided JSON format.
         - Use sensible ASHRAE/IES defaults when a value is not explicitly stated.
         - Express schedule times in HH:MM 24-hour format.
-        - Express watts per person as metabolic rate (e.g. 140 W for office work).
-        - If the description mentions W/m² for people, convert to number_of_people using the
-          provided floor area hint if available; otherwise store in notes.
+        - If it is explicitly specified that there are no occupancy, lights or equipment, then provide 0 densities.
         """).strip()
+        # - If people, lights or equipment are not mentioned in the description, set the exists field to false.
         json_response = self.request_client.structured_output(prompt, self.request_schema)
         return ast.literal_eval(json_response)
 
