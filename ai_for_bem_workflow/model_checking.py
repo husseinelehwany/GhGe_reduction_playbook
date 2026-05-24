@@ -121,8 +121,8 @@ class ModelChecking:
         heat_load = df["Heating:EnergyTransfer [J](Hourly)"].sum() * J_2_kwh / area
         cool_load = df["Cooling:EnergyTransfer [J](Hourly)"].sum() * J_2_kwh / area
         elct_eui = df["Electricity:Facility [J](Hourly)"].sum() * J_2_kwh / area
-        gas_eui = df["NaturalGas:Facility [J](Hourly)"].sum() * J_2_kwh / area
-        return {"Heating load": heat_load, "Cooling load": cool_load, "Electricity EUI": elct_eui,"Gas EUI": gas_eui}
+        # gas_eui = df["NaturalGas:Facility [J](Hourly)"].sum() * J_2_kwh / area
+        return {"Heating load": heat_load, "Cooling load": cool_load, "Electricity EUI": elct_eui}  # ,"Gas EUI": gas_eui
 
     def get_ceiling_height(self):
         ceiling_height = []
@@ -146,20 +146,48 @@ class ModelChecking:
         total_window_area = self.get_WWR("Window Opening Area [m2]")
         total_floor_area = self.get_building_area()
         ceiling_height = self.get_ceiling_height()
-        return {"roof_area": roof_area, "WWR": WWR, "total_wall_area": total_wall_area,
-                "total_floor_area": total_floor_area, "total_window_area": total_window_area, "ceiling_height": ceiling_height}
+        return {"roof_area": roof_area,
+                "WWR": WWR,
+                "total_wall_area": total_wall_area,
+                "total_floor_area": total_floor_area,
+                "total_window_area": total_window_area,
+                "ceiling_height": ceiling_height}
+
+    def get_percent_error(self, model_val, user_val):
+        if user_val > 0:
+            return abs(user_val - model_val) * 100 / user_val
+        else:
+            return 0
+
+    def compare_specs(self, model_specs, user_specs):
+        specs_error = {}
+        for k, v in model_specs.items():
+            specs_error[k] = self.get_percent_error(model_specs[k], float(user_specs[k]))
+        return specs_error
+
+    def get_anomalous_specs(self, model_specs, user_specs, tolerance):
+        anomalous_specs = {}
+        for k, v in model_specs.items():
+            perc_err = self.get_percent_error(model_specs[k], float(user_specs[k]))
+            if perc_err > tolerance:
+                anomalous_specs[k] = perc_err
+        if not anomalous_specs:
+            success = True
+        else:
+            success = False
+        return anomalous_specs, success
 
 def main():
-    scenario = 141
+    scenario = 268
     my_check = ModelChecking(os.path.join("results", f"v{scenario}", "eplustbl.csv"),
                              os.path.join("results", f"v{scenario}", "eplusout.csv"),
                              os.path.join("results", f"v{scenario}", "eplusmtr.csv"),
                              os.path.join("results", f"v{scenario}", "eplusout.eio"))
-    # props_dict = my_check.get_envelope_props()
-    # meters = my_check.get_meters()
-    # print(meters)
-    ceiling = my_check.get_ceiling_height()
-    print(ceiling)
+    props_dict = my_check.get_envelope_props()
+    meters = my_check.get_meters()
+    print(meters)
+    # ceiling = my_check.get_ceiling_height()
+    # print(ceiling)
 
 if __name__ == "__main__":
     main()
