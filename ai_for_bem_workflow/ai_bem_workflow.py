@@ -24,6 +24,7 @@ import logging
 from datetime import datetime
 import numpy as np
 import shutil
+import re
 sys.path.insert(0, 'C:\EnergyPlusV24-1-0')  # add E-Plus directory to path to be able to import API
 from pyenergyplus.api import EnergyPlusAPI
 from api_clients import *
@@ -32,6 +33,7 @@ from eppy.modeleditor import IDF
 from chat_history import *
 from error_parser import ErrorParser
 from mcp_provider import HVACTemplateMCP
+from internal_gains_generator import InternalGainsGenerator
 
 idd_file = "C:\EnergyPlusV24-1-0\Energy+.idd"
 IDF.setiddname(idd_file)
@@ -154,6 +156,9 @@ class BuildingEnergyWorkflow:
     def llm_generate_idf(self, prompt: str, i: int) -> str:
         # send message/history to llm
         message = self.client.call_client(prompt)
+        # Strip markdown code fences (```idf ... ``` or ``` ... ```)
+        message = re.sub(r"^```[a-zA-Z]*\n?", "", message.strip())
+        message = re.sub(r"\n?```$", "", message.strip())
         # create idf
         file_name = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
         with open(file_name, "w") as file:
@@ -233,6 +238,10 @@ class BuildingEnergyWorkflow:
                  f"adding any new objects. Provide ONLY the IDF file content, starting with the first object and " \
                  f"ending with the last object. Do not include explanation."
         return prompt
+
+    def add_internal_gains(self,building_description, idf_path):
+        gains_gen = InternalGainsGenerator(idf_path)
+        gains_gen.add_gains_to_idf(building_description)
 
     def add_hvac_templates(self, building_desc, idf_path):
         mcp = HVACTemplateMCP(idf_path)

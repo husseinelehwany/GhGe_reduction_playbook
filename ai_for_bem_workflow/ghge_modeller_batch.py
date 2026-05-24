@@ -4,24 +4,16 @@ from time import time
 
 from ai_bem_workflow import *
 from model_checking import ModelChecking
-from internal_gains_generator import InternalGainsGenerator
 
 
 epw_file = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
 ghge_modeller = BuildingEnergyWorkflow("gemini")
-user_description = {"layout": "L-shaped building", "a":16, "b":9, "c": 11, "d":3, "ceiling_height":3.4,
-                    "number_of_floors":1, "WWR": 0.5, "details": "It is modelled as single zone with envelope relevant for Ottawa building built in 2020. it has AHU VAV system."}
-# user_description = {"layout": "T-shaped building", "a":35, "b":12, "c": 18, "d":9, "ceiling_height":4,
-#                     "number_of_floors":1, "WWR": 0.4, "details": "Divide the 2 parts of the T-shape into 2 zones. the envelope is relevant for Ottawa building built in 2020. it has AHU VAV system"}
-# user_description = {"layout": "Rectangular building", "a":28, "b":19, "c": None, "d":None, "ceiling_height":3,
-#                     "number_of_floors":1, "WWR": 0.21,
-#                     "details": "Divide the model into perimeter zones and core zone. the envelope is relevant for Ottawa building built in 2022. it has AHU VAV system"}
-ghge_modeller.epw_file = os.path.join("input_files", 'CAN_ON_Ottawa.716280_CWEC.epw')
+user_description = {"layout": "L-shaped building", "a":20, "b":16, "c": 12, "d":8, "ceiling_height":3.4,
+                    "number_of_floors":2, "WWR": 0.3,
+                    "details": "It is a small office building. Divide the 2 parts of the L-shape into 2 zones. the envelope is relevant for an Ottawa building built in 2024. It has occupant density of 20 m2 per occupant, LED lights and common office equipment.  The building uses a heat pump system with ducted air distribution via an AHU and baseboard heaters in each zone."}
 
-internal_gains_description = (
-    "Open-plan office building, 10 m2/person, standard office lighting at 10 W/m2, "
-    "and office equipment at 15 W/m2. Occupied Monday to Friday from 08:00 to 18:00."
-)
+
+ghge_modeller.epw_file = os.path.join("input_files", 'CAN_ON_Ottawa.716280_CWEC.epw')
 
 enable_llm_loop = True  # used for testing
 enable_hvac = True
@@ -30,7 +22,8 @@ for i in range(1):
     # Step 2: Create prompt
     prompt = ghge_modeller.create_prompt(user_description)
     var_names = ["Site Outdoor Air Drybulb Temperature", "Zone Mean Air Temperature"]
-    meter_names = ["Heating:EnergyTransfer", "Cooling:EnergyTransfer","Electricity:Facility","NaturalGas:Facility"]
+    # TODO: add specialized meters depending on the existing HVAC system
+    meter_names = ["Heating:EnergyTransfer", "Cooling:EnergyTransfer","Electricity:Facility"]
     models_count = 0
     for j in range(3):  # spec compliance loop
         for i in range(4):  # executability loop
@@ -67,15 +60,14 @@ for i in range(1):
                 break
 
         if success:
-            # Step 5.5: add internal gains
+            # Step 6: add internal gains
             print("Bot: adding internal gains...\n")
-            gains_gen = InternalGainsGenerator(idf_path)
-            gains_gen.add_gains_to_idf(user_description)
+            ghge_modeller.add_internal_gains(user_description, idf_path)
 
-            # Step 6: add outputs
+            # Step 7: add outputs
             ghge_modeller.add_output_objects(idf_path, var_names, meter_names)
 
-            # Step 7: add HVAC, then run model
+            # Step 8: add HVAC, then run model
             if enable_hvac:
                 print("Bot: adding HVAC components...\n")
                 idf = ghge_modeller.add_hvac_templates(user_description, idf_path)
@@ -83,7 +75,7 @@ for i in range(1):
                 success = ghge_modeller.run_energyplus(idf_path, epw_file)
 
         if success:
-            # Step 8: compare bldg props and meters
+            # Step 9: compare bldg props and meters
             try:
                 my_check = ModelChecking(os.path.join(ghge_modeller.workflow_dir, "eplustbl.csv"),
                                          os.path.join(ghge_modeller.workflow_dir, "eplusout.csv"),
@@ -100,7 +92,7 @@ for i in range(1):
             # user_def_props = ghge_modeller.get_props_from_user_input(user_description)
             user_def_props = ghge_modeller.get_groundtruth(building_description=user_description)
             print(f"User defined specs: {user_def_props}\n")
-            percent_error, success = my_check.get_anomalous_specs(model_props, user_def_props, tolerance=10)
+            percent_error, success_specs = my_check.get_anomalous_specs(model_props, user_def_props, tolerance=10)
             print(percent_error)
             if percent_error:
                 prompt = ghge_modeller.create_specs_prompt(user_description, percent_error)
@@ -113,6 +105,14 @@ for i in range(1):
 
 
 
-    # Step 9: save chat history and output files
+    # Step 10: save chat history and output files
+    results_summary = {
+        "success": locals().get("success"),
+        "model_props": locals().get("model_props"),
+        "user_def_props": locals().get("user_def_props"),
+        "percent_error": locals().get("percent_error"),
+    }
+    with open(os.path.join(ghge_modeller.workflow_dir, "results_summary.json"), "w") as f:
+        json.dump(results_summary, f, indent=4)
     ghge_modeller.save_chat_history()
     ghge_modeller.save_outputs()
