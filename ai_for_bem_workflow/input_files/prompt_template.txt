@@ -16,7 +16,7 @@ REQUIREMENTS:
 7. Do not add any HVAC objects.
 8. If the building has more than 3 storeys, create only the bottom floor, the top floor and one intermediate floor. Then use the multiplier field in the zone objects.
 
-Provide ONLY the IDF file content, starting with the first object and ending with the last object. Do not include explanation.
+Provide ONLY the raw IDF file content. Do NOT wrap the output in markdown code blocks or any other formatting. Do NOT start with ```idf, ```, or any other prefix.
 
 use this file as an example:
 {idf_example}
