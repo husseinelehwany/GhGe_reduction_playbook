@@ -33,12 +33,12 @@ import textwrap
 import ast
 from typing import Any
 from api_clients import *
+from config import EPLUS_IDD
 
 from eppy import modeleditor
 from eppy.modeleditor import IDF
 
-idd_file = "C:\EnergyPlusV24-1-0\Energy+.idd"
-IDF.setiddname(idd_file)
+IDF.setiddname(EPLUS_IDD)
 
 class InternalGainsGenerator:
     """

@@ -25,7 +25,8 @@ from datetime import datetime
 import numpy as np
 import shutil
 import re
-sys.path.insert(0, 'C:\EnergyPlusV24-1-0')  # add E-Plus directory to path to be able to import API
+from config import EPLUS_DIR, EPLUS_IDD
+sys.path.insert(0, EPLUS_DIR)
 from pyenergyplus.api import EnergyPlusAPI
 from api_clients import *
 from eppy import modeleditor
@@ -35,8 +36,7 @@ from error_parser import ErrorParser
 from mcp_provider import HVACTemplateMCP
 from internal_gains_generator import InternalGainsGenerator
 
-idd_file = "C:\EnergyPlusV24-1-0\Energy+.idd"
-IDF.setiddname(idd_file)
+IDF.setiddname(EPLUS_IDD)
 
 class BuildingEnergyWorkflow:
     """

@@ -118,9 +118,11 @@ class GHGeBotGUI:
             self.append_text("No more possible trials. Try different input prompt.\n")
 
 
-
         self.ghge_modeller.save_chat_history()
         self.ghge_modeller.save_outputs()
+
+
+
 
 root = tk.Tk()
 ghge_modeller = BuildingEnergyWorkflow("gemini")

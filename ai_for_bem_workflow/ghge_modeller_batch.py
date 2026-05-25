@@ -8,9 +8,9 @@ from model_checking import ModelChecking
 
 epw_file = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
 ghge_modeller = BuildingEnergyWorkflow("gemini")
-user_description = {"layout": "L-shaped building", "a":20, "b":16, "c": 12, "d":8, "ceiling_height":3.4,
-                    "number_of_floors":2, "WWR": 0.3,
-                    "details": "It is a small office building. Divide the 2 parts of the L-shape into 2 zones. the envelope is relevant for an Ottawa building built in 2024. It has occupant density of 20 m2 per occupant, LED lights and common office equipment.  The building uses a heat pump system with ducted air distribution via an AHU and baseboard heaters in each zone."}
+user_description = {"layout": "Rectangular building", "a":20, "b":30, "c": None, "d":None, "ceiling_height":10,
+                     "number_of_floors":1, "WWR": 0.1,
+                    "details": "It is a warehouse building. Model as 1 thermal zone. the envelope is relevant for Gagetown, New Brunswick building built in 2000. It is unoccupants and has no HVAC system."}
 
 
 ghge_modeller.epw_file = os.path.join("input_files", 'CAN_ON_Ottawa.716280_CWEC.epw')

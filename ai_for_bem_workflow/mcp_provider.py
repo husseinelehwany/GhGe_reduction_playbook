@@ -8,10 +8,9 @@ import ast
 from eppy import modeleditor
 from eppy.modeleditor import IDF
 from api_clients import *
+from config import EPLUS_IDD
 
-
-idd_file = "C:\EnergyPlusV24-1-0\Energy+.idd"
-IDF.setiddname(idd_file)
+IDF.setiddname(EPLUS_IDD)
 
 class HVACTemplateMCP:
     """
