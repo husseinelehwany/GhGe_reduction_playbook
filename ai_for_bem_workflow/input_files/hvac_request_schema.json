@@ -14,7 +14,7 @@
         "properties": {
           "control_zone": {"type": "string"},
 		  "economizer_type": { "type": "string" , "enum": ["NoEconomizer", "DifferentialDryBulb"]},
-          "reheat_coil_type": { "type": "string" , "enum": ["None","Gas","Electricity"]},
+          "reheat_coil_type": { "type": "string" , "enum": ["None","Gas","Electric"]},
 		  "baseboard": { "type": "string" , "enum": ["None","Electric"]},
 		  "night_cycle_control": { "type": "string" , "enum": ["StayOff","CycleOnAny"]},
 		  "heat_recovery": { "type": "string" , "enum": ["None","Sensible","Enthalpy"]},
