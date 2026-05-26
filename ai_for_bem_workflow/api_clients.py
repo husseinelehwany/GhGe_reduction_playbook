@@ -103,7 +103,12 @@ class OpenRouterAPIClient:
     def call_client(self, prompt):
         self.append_messages({"role": "user", "content": prompt})
         response = self.call_api()
-        message = response.json()["choices"][0]["message"]["content"]
+        data = response.json()
+        if "error" in data:
+            raise RuntimeError(f"OpenRouter API error: {data['error']}")
+        message = data["choices"][0]["message"]["content"]
+        if message is None:
+            raise RuntimeError(f"OpenRouter returned null content for model '{self.model}'. Full response: {data}")
         self.append_messages({"role": "assistant", "content": message})
         self.trim_messages()
         return message
@@ -188,8 +193,8 @@ def main():
     # response = my_client.call_client("add 3 to your previous answer")
     # print(my_client.messages[-1]['content'])
     # print(my_client.history)
-    my_client.get_all_models("gemini")
-    my_client.get_model_details("google/gemini-3.1-flash-lite-preview")
+    my_client.get_all_models("anthropic")
+    # my_client.get_model_details("google/gemini-3.1-flash-lite-preview")
     # my_client.get_credit()
 
     # with open(r"input_files/user_building_props_schema.json", 'r') as file:
