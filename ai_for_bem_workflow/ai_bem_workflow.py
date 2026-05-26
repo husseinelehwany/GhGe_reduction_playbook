@@ -155,12 +155,14 @@ class BuildingEnergyWorkflow:
     def llm_generate_idf(self, prompt: str, i: int) -> str:
         # send message/history to llm
         message = self.client.call_client(prompt)
+        if not message:
+            raise RuntimeError("LLM returned empty response — cannot generate IDF.")
         # Strip markdown code fences (```idf ... ``` or ``` ... ```)
         message = re.sub(r"^```[a-zA-Z]*\n?", "", message.strip())
         message = re.sub(r"\n?```$", "", message.strip())
         # create idf
         file_name = os.path.join(self.workflow_dir, f"llm_gen_model_{i}.idf")
-        with open(file_name, "w") as file:
+        with open(file_name, "w", encoding="utf-8") as file:
             file.write(message)
         return message
 
