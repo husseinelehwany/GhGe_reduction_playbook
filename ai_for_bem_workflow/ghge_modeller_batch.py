@@ -8,12 +8,11 @@ from model_checking import ModelChecking
 
 epw_file = os.path.join("input_files", 'Ottawa_CWEC_2020.epw')
 ghge_modeller = BuildingEnergyWorkflow("gemini")
-user_description = {"layout": "Rectangular building", "a":20, "b":30, "c": None, "d":None, "ceiling_height":10,
-                     "number_of_floors":1, "WWR": 0.1,
-                    "details": "It is a warehouse building. Model as 1 thermal zone. the envelope is relevant for Gagetown, New Brunswick building built in 2000. It is unoccupants and has no HVAC system."}
+user_description = {"layout": "Rectangular building", "a":24, "b":18, "c": None, "d":None, "ceiling_height":4,
+                    "number_of_floors":1, "WWR": 0.33,
+                    "details": "It is a small office building. create 4 perimeter zones and 1 core zone. the envelope is relevant for a Toronto building built in 2024. It has occupant density of 30 m2 per occupant, LED lights and common office equipment.  The HVAC system consists of AHU with an economizer and VAV boxes with reheat coils."}
 
-
-ghge_modeller.epw_file = os.path.join("input_files", 'CAN_ON_Ottawa.716280_CWEC.epw')
+ghge_modeller.epw_file = os.path.join("input_files", 'CAN_ON_Toronto.716240_CWEC.epw')
 
 enable_llm_loop = True  # used for testing
 enable_hvac = True
