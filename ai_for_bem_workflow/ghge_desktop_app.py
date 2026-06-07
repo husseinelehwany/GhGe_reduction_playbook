@@ -1,5 +1,4 @@
 import os
-import sys
 import threading
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -22,36 +21,18 @@ SECONDARY_DIMS_REQUIRED = {
     "Hollow building": True,
 }
 
-_DEFAULT_EPW = os.path.join("input_files", "CAN_ON_Ottawa.716280_CWEC.epw")
+_DEFAULT_EPW = os.path.join("input_files", "CAN_AB_Edmonton.711230_CWEC.epw")
 
 defaults = {
     "layout": "Rectangular building",
-    "a": 24.0, "b": 18.0, "c": None, "d": None,
-    "ceiling_height": 4.0,
-    "number_of_floors": 1,
-    "WWR": 0.33,
-    "details": "More details on the building...",
+    "a": 30.0, "b": 30.0, "c": None, "d": None,
+    "ceiling_height": 3.0,
+    "number_of_floors": 5,
+    "WWR": 0.4,
+    "details": "It is a medium office building. create 4 perimeter zones and 1 core zone. the envelope is relevant for an Edmonton building built in 2014."
+    " It has 0.05 occupants per m2, LED lights and common office equipment. "
+    " The HVAC system consists of AHU with an economizer and heat recovery, VAV boxes with reheat coils and electric baseboard heaters."  #"More details on the building...",
 }
-
-
-class GUILogStream:
-    """Redirects sys.stdout writes to a tk.Text widget (thread-safe via root.after)."""
-
-    def __init__(self, widget: tk.Text, root: tk.Tk):
-        self._widget = widget
-        self._root = root
-
-    def write(self, msg: str):
-        self._root.after(0, self._append, msg)
-
-    def _append(self, msg: str):
-        self._widget.config(state="normal")
-        self._widget.insert("end", msg)
-        self._widget.see("end")
-        self._widget.config(state="disabled")
-
-    def flush(self):
-        pass
 
 
 class BuildingInputGUI:
@@ -228,13 +209,26 @@ class BuildingInputGUI:
             "details": details,
         }
 
+        # greys out the Generate button and prevents it from being clicked again
         self.generate_btn.config(state="disabled")
-        sys.stdout = GUILogStream(self.log_text, self.root)
 
+        # scheduling a function to run on the main (GUI) thread. in 0 ms, call self._append_log with this arg.
+        def log(msg=""):
+            self.root.after(0, self._append_log, str(msg) + "\n")
+
+        # creates a second thread runs alongside the main thread.
+        # Main thread: [tkinter mainloop], Worker thread: [run_workflow()]  
         if self.on_submit:
-            threading.Thread(target=self.on_submit, args=(self.result,), daemon=True).start()
+            # target=self.on_submit --> run_workflow(user_description, log)
+            threading.Thread(target=self.on_submit, args=(self.result, log), daemon=True).start()
         else:
             self.root.destroy()
+
+    def _append_log(self, msg: str):
+        self.log_text.config(state="normal")
+        self.log_text.insert("end", msg)
+        self.log_text.see("end")
+        self.log_text.config(state="disabled")
 
 
 def run_with_gui(workflow_fn) -> None:
