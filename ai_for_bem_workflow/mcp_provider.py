@@ -146,7 +146,7 @@ class HVACTemplateMCP:
 
         self.idf.idfobjects["SIMULATIONCONTROL"][-1].Do_Zone_Sizing_Calculation = "Yes"
         self.idf.idfobjects["SIMULATIONCONTROL"][-1].Do_System_Sizing_Calculation = "Yes"
-        self.idf.idfobjects["SIMULATIONCONTROL"][-1].Do_Plant_Sizing_Calculation = "Yes"
+        self.idf.idfobjects["SIMULATIONCONTROL"][-1].Do_Plant_Sizing_Calculation = "No"
         self.idf.idfobjects["SIMULATIONCONTROL"][-1].Run_Simulation_for_Sizing_Periods = "No"
         self.idf.idfobjects["SIMULATIONCONTROL"][-1].Run_Simulation_for_Weather_File_Run_Periods = "Yes"
         self.idf.idfobjects["SIMULATIONCONTROL"][-1].Do_HVAC_Sizing_Simulation_for_Sizing_Periods = "Yes"
