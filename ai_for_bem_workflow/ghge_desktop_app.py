@@ -21,17 +21,15 @@ SECONDARY_DIMS_REQUIRED = {
     "Hollow building": True,
 }
 
-_DEFAULT_EPW = os.path.join("input_files", "CAN_AB_Edmonton.711230_CWEC.epw")
+_DEFAULT_EPW = os.path.join("input_files", "CAN_ON_Ottawa.716280_CWEC.epw")
 
 defaults = {
     "layout": "Rectangular building",
     "a": 30.0, "b": 30.0, "c": None, "d": None,
     "ceiling_height": 3.0,
-    "number_of_floors": 5,
-    "WWR": 0.4,
-    "details": "It is a medium office building. create 4 perimeter zones and 1 core zone. the envelope is relevant for an Edmonton building built in 2014."
-    " It has 0.05 occupants per m2, LED lights and common office equipment. "
-    " The HVAC system consists of AHU with an economizer and heat recovery, VAV boxes with reheat coils and electric baseboard heaters."  #"More details on the building...",
+    "number_of_floors": 1,
+    "WWR": 0.5,
+    "details": "More details on the building...",
 }
 
 

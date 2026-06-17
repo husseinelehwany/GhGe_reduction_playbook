@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import warnings
 
@@ -94,16 +95,21 @@ class ErrorParser:
     def get_severe_fatal(self):
         return [error for error in self.errors if error['type'] in ['Severe', 'Fatal']]
 
+    def get_non_enclosed(self):
+        pattern = re.compile(r'The Zone=".+".*is not fully enclosed', re.IGNORECASE)
+        return [e for e in self.errors
+                if e['type'] == 'Warning' and pattern.search(e['content'])]
+
     def delete(self):
         self.errors = []
 
-
 def main():
     error_parser = ErrorParser()
-    error_parser.parse( r"C:\Users\Hussein Elehwany\Desktop\Repos\GhGe_reduction_playbook\ai_for_bem_workflow\results\v37", 'eplusout.err')
-    error_parser.save(r"C:\Users\Hussein Elehwany\Desktop\Repos\GhGe_reduction_playbook\ai_for_bem_workflow\results\v37", "errors_json.json")
+    error_parser.parse( r"C:\Users\Hussein Elehwany\Desktop\Repos\GhGe_reduction_playbook\ai_for_bem_workflow\results\v293", 'eplusout.err')
+    error_parser.save(r"C:\Users\Hussein Elehwany\Desktop\Repos\GhGe_reduction_playbook\ai_for_bem_workflow\results\v293", "errors_json.json")
     if error_parser.get_severe_fatal():
         print(error_parser.get_severe_fatal())
+    print(error_parser.get_non_enclosed())
     # error_parser.delete()
 
 if __name__ == "__main__":

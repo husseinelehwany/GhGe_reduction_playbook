@@ -213,7 +213,10 @@ class BuildingEnergyWorkflow:
         if os.path.exists(error_file):
             self.error_parser.parse(self.workflow_dir, "eplusout.err")
             self.error_parser.save(self.workflow_dir, "errors_json.json")
-            errors = self.error_parser.get_severe_fatal()
+            severe_fatal_errors = self.error_parser.get_severe_fatal()
+            enclosure_warnings = self.error_parser.get_non_enclosed()
+            print(enclosure_warnings)
+            errors = severe_fatal_errors + enclosure_warnings
             if len(errors) > 0:
                 print(errors)
             else:
@@ -345,6 +348,8 @@ def main():
     print(layout)
     user_def_props = workflow.get_groundtruth(building_description=user_description)
     print(f"User defined specs: {user_def_props}\n")
+
+    workflow.read_error_file()
 
 
 if __name__ == "__main__":

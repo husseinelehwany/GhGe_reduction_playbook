@@ -122,19 +122,18 @@ class InternalGainsGenerator:
         start = people_dict["occupancy_start"]   # e.g. "08:00"
         end   = people_dict["occupancy_end"]     # e.g. "18:00"
         days  = set(people_dict["occupied_days"])
+        ALL_DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday","Friday", "Saturday", "Sunday"}
 
-        ALL_DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday",
-                    "Friday", "Saturday", "Sunday"}
-        WEEKDAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
-        WEEKENDS = {"Saturday", "Sunday"}
-
-        if days == ALL_DAYS:
-            occupied_str   = "AllDays"
-            unoccupied_str = None
-        elif days == WEEKDAYS:
+        if len(days) == 0:  # handles unoccupied case, when days array is empty
             occupied_str   = "Weekdays"
             unoccupied_str = "Weekends"
-        elif days == WEEKENDS:
+        elif days == ALL_DAYS:
+            occupied_str   = "AllDays"
+            unoccupied_str = None
+        elif days == {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}:
+            occupied_str   = "Weekdays"
+            unoccupied_str = "Weekends"
+        elif days == {"Saturday", "Sunday"}:
             occupied_str   = "Weekends"
             unoccupied_str = "Weekdays"
         else:

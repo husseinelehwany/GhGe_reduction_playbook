@@ -19,7 +19,7 @@ def run_workflow(user_description: dict, log=print):
     var_names = ["Site Outdoor Air Drybulb Temperature", "Zone Mean Air Temperature"]
     meter_names = ["Heating:EnergyTransfer", "Cooling:EnergyTransfer", "Electricity:Facility"]
     models_count = 0
-    success = False
+    sim_success = False
     model_props = None
     user_def_props = None
     percent_error = None
@@ -38,29 +38,25 @@ def run_workflow(user_description: dict, log=print):
 
             log("Bot: executing simulation...")
             idf_path = os.path.join(ghge_modeller.workflow_dir, f"llm_gen_model_{models_count}.idf")
-            success = ghge_modeller.run_energyplus(idf_path, epw_file)
-            if success:
-                log("Simulation executed successfully")
-                log(f"Done.\n{'-' * 50}")
-                ###############################################
-                # TODO breaks before checking for warnings !!!!
-                ###############################################
-                break
-            else:
-                log("Simulation failed.")
+            sim_success = ghge_modeller.run_energyplus(idf_path, epw_file)
 
             log("Bot: checking errors...")
             errors = ghge_modeller.read_error_file()
             print(errors)
-            if len(errors) > 0:
+            valid_model = True if len(errors) == 0 else False
+            
+            if valid_model:
+                log("Simulation executed successfully")
+                log(f"Done.\n{'-' * 50}")
+                ghge_modeller.error_parser.delete()
+                break
+            else:
                 log("Bot: Errors found! Debugging errors...")
                 prompt = ghge_modeller.create_error_prompt(errors)
                 ghge_modeller.error_parser.delete()
-            else:
-                ghge_modeller.error_parser.delete()
-                break
 
-        if success:
+        # adding internal gains and HVAC
+        if valid_model:
             log("Bot: adding internal gains...")
             ghge_modeller.add_internal_gains(user_description, idf_path)
             ghge_modeller.add_output_objects(idf_path, var_names, meter_names)
@@ -68,9 +64,10 @@ def run_workflow(user_description: dict, log=print):
             log("Bot: adding HVAC components...")
             ghge_modeller.add_hvac_templates(user_description, idf_path)
             log("Bot: executing simulation...")
-            success = ghge_modeller.run_energyplus(idf_path, epw_file)
+            sim_success = ghge_modeller.run_energyplus(idf_path, epw_file)
 
-        if success:
+        # Compliance loop
+        if sim_success:
             try:
                 my_check = ModelChecking(
                     os.path.join(ghge_modeller.workflow_dir, "eplustbl.csv"),
@@ -101,7 +98,7 @@ def run_workflow(user_description: dict, log=print):
             break
 
     # Save results
-    overall_success = success and compliant
+    overall_success = sim_success and compliant
     results_summary = {
         "success": overall_success,
         "model_props": model_props,
