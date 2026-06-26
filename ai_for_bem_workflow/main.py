@@ -11,7 +11,6 @@ ghge_modeller = BuildingEnergyWorkflow("gemini")
 
 def prep_log(in_dict):
     return json.dumps({k: round(v, 2) for k, v in in_dict.items()}, indent=2)
-
 def run_workflow(user_description: dict, log=print):
     epw_file = user_description.pop("epw_file")
 
@@ -60,7 +59,8 @@ def run_workflow(user_description: dict, log=print):
             log("Bot: adding internal gains...")
             ghge_modeller.add_internal_gains(user_description, idf_path)
             ghge_modeller.add_output_objects(idf_path, var_names, meter_names)
-
+            ground_message = ghge_modeller.add_ground_temperatures(idf_path, epw_file)
+            log(f"Bot: {ground_message}")
             log("Bot: adding HVAC components...")
             ghge_modeller.add_hvac_templates(user_description, idf_path)
             log("Bot: executing simulation...")

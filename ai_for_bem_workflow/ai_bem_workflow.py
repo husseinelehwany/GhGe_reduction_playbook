@@ -54,10 +54,10 @@ class BuildingEnergyWorkflow:
         os.makedirs(self.workflow_dir, exist_ok=True)
         # self.chat_history = ChatHistory(max_messages=10, max_tokens=150000)
         self.client_type = client_type
-        model_name = {"gemini": "google/gemini-2.5-pro",
+        model_name = {"gemini": "google/gemini-3.1-pro-preview",
                       "deepseek": "deepseek/deepseek-v3.2-speciale",
-                      "claude": "anthropic/claude-sonnet-4.6",
-                      "openai": "openai/gpt-5.2-pro",
+                      "claude": "anthropic/claude-opus-4.8",
+                      "gpt": "openai/gpt-5.5-pro",
                       "kimi": "moonshotai/kimi-k2.5",
                       "minimax": "minimax/minimax-m2.5",
                       "qwen": "qwen/qwen3.5-plus-02-15"}
@@ -149,8 +149,12 @@ class BuildingEnergyWorkflow:
         total_floor_area = area * no_of_floors
         wall_area = perimeter * ceiling_height * no_of_floors
         window_area = WWR * wall_area
-        return {"roof_area": area, "WWR": WWR*100, "total_floor_area": total_floor_area, "total_wall_area": wall_area,
-              "total_window_area": window_area, "ceiling_height": ceiling_height}
+        return {"roof_area": area,
+                "WWR": WWR*100,
+                "total_floor_area": total_floor_area,
+                "total_wall_area": wall_area,
+                "total_window_area": window_area,
+                "ceiling_height": ceiling_height}
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:
         # send message/history to llm
@@ -254,9 +258,12 @@ class BuildingEnergyWorkflow:
 
     def add_output_objects(self, idf_path, var_names, meter_names):
         idf = IDF(idf_path)
-        idf.newidfobject("OUTPUT:TABLE:SUMMARYREPORTS", Report_1_Name="AllSummary")
-        idf.newidfobject("OUTPUTCONTROL:FILES", Output_CSV="Yes")
-        idf.newidfobject("OUTPUT:DIAGNOSTICS", Key_1="DisplayExtrawarnings")
+        if len(idf.idfobjects["OUTPUT:TABLE:SUMMARYREPORTS"]) == 0:
+            idf.newidfobject("OUTPUT:TABLE:SUMMARYREPORTS", Report_1_Name="AllSummary")
+        if len(idf.idfobjects["OUTPUTCONTROL:FILES"]) == 0:
+            idf.newidfobject("OUTPUTCONTROL:FILES", Output_CSV="Yes")
+        if len(idf.idfobjects["OUTPUT:DIAGNOSTICS"]) == 0:
+            idf.newidfobject("OUTPUT:DIAGNOSTICS", Key_1="DisplayExtrawarnings")
         for var in var_names:
             idf.newidfobject(
                 "OUTPUT:VARIABLE",
@@ -271,6 +278,29 @@ class BuildingEnergyWorkflow:
                 Reporting_Frequency="Hourly"
             )
         idf.save()
+    
+    def add_ground_temperatures(self, idf_path, epw_file):
+        with open(epw_file, "r") as f:
+            lines = f.readlines()[0:8]  # skip 8 header lines
+        ground_temps = []
+        for line in lines:
+            fields = line.strip().split(",")
+            if fields[0] == "GROUND TEMPERATURES" and fields[2] == ".5":
+                ground_temps = [float(x) for x in fields[6:18]]
+        
+        if len(ground_temps) == 12:
+            idf = IDF(idf_path)
+            while len(idf.idfobjects["SITE:GROUNDTEMPERATURE:BUILDINGSURFACE"]) > 0:
+                idf.idfobjects["SITE:GROUNDTEMPERATURE:BUILDINGSURFACE"].pop(-1)
+            idf.newidfobject("SITE:GROUNDTEMPERATURE:BUILDINGSURFACE")
+            for idx, field in enumerate(idf.idfobjects["SITE:GROUNDTEMPERATURE:BUILDINGSURFACE"][0].fieldnames):
+                if idx > 0:
+                    setattr(idf.idfobjects["SITE:GROUNDTEMPERATURE:BUILDINGSURFACE"][0], field, ground_temps[idx-1])
+            idf.save()
+            return "Ground temperatures added!"
+        else:
+            return "Ground temperatures not found!"
+        
 
     def save_chat_history(self):
         file_name = os.path.join(self.workflow_dir, "full_history.json")
