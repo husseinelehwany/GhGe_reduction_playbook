@@ -149,12 +149,10 @@ class BuildingEnergyWorkflow:
         total_floor_area = area * no_of_floors
         wall_area = perimeter * ceiling_height * no_of_floors
         window_area = WWR * wall_area
-        return {"roof_area": area,
-                "WWR": WWR*100,
-                "total_floor_area": total_floor_area,
-                "total_wall_area": wall_area,
-                "total_window_area": window_area,
-                "ceiling_height": ceiling_height}
+        return {"total_floor_area": total_floor_area,
+                "ceiling_height": ceiling_height,
+                "WWR": WWR*100}
+            #"roof_area": area,"total_wall_area": wall_area,"total_window_area": window_area,}
 
     def llm_generate_idf(self, prompt: str, i: int) -> str:
         # send message/history to llm

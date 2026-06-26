@@ -146,12 +146,10 @@ class ModelChecking:
         total_window_area = self.get_WWR("Window Opening Area [m2]")
         total_floor_area = self.get_building_area()
         ceiling_height = self.get_ceiling_height()
-        return {"roof_area": roof_area,
-                "WWR": WWR,
-                "total_wall_area": total_wall_area,
-                "total_floor_area": total_floor_area,
-                "total_window_area": total_window_area,
-                "ceiling_height": ceiling_height}
+        return {"total_floor_area": total_floor_area,
+                "ceiling_height": ceiling_height,
+                "WWR": WWR}
+            #"roof_area": roof_area,"total_wall_area": total_wall_area, "total_window_area": total_window_area,"ceiling_height": ceiling_height}
 
     def get_percent_error(self, model_val, user_val):
         if user_val > 0:
