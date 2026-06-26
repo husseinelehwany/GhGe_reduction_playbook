@@ -63,8 +63,9 @@ class InternalGainsGenerator:
 
         Rules:
         - Give the output in the provided JSON format.
-        - Use sensible ASHRAE/IES defaults when a value is not explicitly stated.
+        - Use sensible ASHRAE/IES/NECB Canada defaults when a value is not explicitly stated.
         - Express schedule times in HH:MM 24-hour format.
+        - People, Lights, and ElectricEquipment objects specify values per zone or per space, not for the whole building.
         - If it is explicitly specified that there are no occupancy, lights or equipment, then provide 0 densities.
         """).strip()
         # - If people, lights or equipment are not mentioned in the description, set the exists field to false.
@@ -193,9 +194,9 @@ class InternalGainsGenerator:
         self.activity_schedule(activity_schedule_name, activity_level)
         if len(self.idf.idfobjects["PEOPLE"]) == 0:
             self.idf.newidfobject("PEOPLE")
-            self.idf.idfobjects["PEOPLE"][-1].Name = "Occupancy Schedule"
+            self.idf.idfobjects["PEOPLE"][-1].Name = "People"
             self.idf.idfobjects["PEOPLE"][-1].Zone_or_ZoneList_or_Space_or_SpaceList_Name = "all_zones"
-            self.idf.idfobjects["PEOPLE"][-1].Number_of_People_Schedule_Name = "Always On"
+            self.idf.idfobjects["PEOPLE"][-1].Number_of_People_Schedule_Name = "Occupancy Schedule"
             self.idf.idfobjects["PEOPLE"][-1].Number_of_People_Calculation_Method = calculation_method # People , People/Area , Area/Person
             if calculation_method == "People":
                 self.idf.idfobjects["PEOPLE"][-1].Number_of_People = people_value
@@ -219,7 +220,7 @@ class InternalGainsGenerator:
             self.idf.newidfobject("LIGHTS")
             self.idf.idfobjects["LIGHTS"][-1].Name = "Lights"
             self.idf.idfobjects["LIGHTS"][-1].Zone_or_ZoneList_or_Space_or_SpaceList_Name = "all_zones"
-            self.idf.idfobjects["LIGHTS"][-1].Schedule_Name = "Always On"
+            self.idf.idfobjects["LIGHTS"][-1].Schedule_Name = "Occupancy Schedule"
             self.idf.idfobjects["LIGHTS"][-1].Design_Level_Calculation_Method = calculation_method
             if calculation_method == "LightingLevel":
                 self.idf.idfobjects["LIGHTS"][-1].Lighting_Level = lights_value
@@ -235,7 +236,7 @@ class InternalGainsGenerator:
             self.idf.newidfobject("ELECTRICEQUIPMENT")
             self.idf.idfobjects["ELECTRICEQUIPMENT"][-1].Name = "Equipment"
             self.idf.idfobjects["ELECTRICEQUIPMENT"][-1].Zone_or_ZoneList_or_Space_or_SpaceList_Name = "all_zones"
-            self.idf.idfobjects["ELECTRICEQUIPMENT"][-1].Schedule_Name = "Always On"
+            self.idf.idfobjects["ELECTRICEQUIPMENT"][-1].Schedule_Name = "Occupancy Schedule"
             self.idf.idfobjects["ELECTRICEQUIPMENT"][-1].Design_Level_Calculation_Method = calculation_method
             if calculation_method == "EquipmentLevel":
                 self.idf.idfobjects["ELECTRICEQUIPMENT"][-1].Design_Level = equipment_value
