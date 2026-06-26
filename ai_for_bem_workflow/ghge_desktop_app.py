@@ -3,6 +3,7 @@ import threading
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from typing import Optional
+from PIL import Image, ImageTk
 
 
 LAYOUTS = [
@@ -12,6 +13,14 @@ LAYOUTS = [
     "U-shaped building",
     "Hollow building",
 ]
+
+LAYOUT_IMAGES = {
+    "Rectangular building": os.path.join("input_files", "layout_images", "rectangular_building.png"),
+    "L-shaped building":    os.path.join("input_files", "layout_images", "l_shaped_building.png"),
+    "T-shaped building":    os.path.join("input_files", "layout_images", "t_shaped_building.png"),
+    "U-shaped building":    os.path.join("input_files", "layout_images", "u_shaped_building.png"),
+    "Hollow building":      os.path.join("input_files", "layout_images", "hollow_building.png"),
+}
 
 SECONDARY_DIMS_REQUIRED = {
     "Rectangular building": False,
@@ -56,7 +65,7 @@ class BuildingInputGUI:
         ttk.Entry(frame, textvariable=self.epw_var, width=30).grid(
             row=row, column=1, columnspan=2, sticky="ew", pady=4)
         ttk.Button(frame, text="Browse…", command=self._browse_epw).grid(
-            row=row, column=3, sticky="w", padx=(8, 0))
+            row=row, column=3, sticky="w", padx=(16, 0))
         row += 1
 
         # Layout
@@ -66,9 +75,15 @@ class BuildingInputGUI:
                                  state="readonly", width=22)
         layout_cb.grid(row=row, column=1, columnspan=2, sticky="w", pady=4)
         layout_cb.bind("<<ComboboxSelected>>", self._on_layout_change)
-        row += 1
+        
+        # Layout image preview, to the right of the a/b and c/d rows
+        self._photo = None
+        self.image_label = tk.Label(frame)
+        self.image_label.grid(row=row, column=3, rowspan=2, padx=(0, 0), sticky="nw")
 
+        row += 2
         # Primary dimensions
+        
         ttk.Label(frame, text="a (m):").grid(row=row, column=0, sticky="w", pady=4)
         self.a_var = tk.StringVar(value=defaults["a"])
         ttk.Entry(frame, textvariable=self.a_var, width=10).grid(row=row, column=1, sticky="w")
@@ -91,6 +106,8 @@ class BuildingInputGUI:
         self.d_entry = ttk.Entry(frame, textvariable=self.d_var, width=10)
         self.d_entry.grid(row=row, column=3, sticky="w")
         row += 1
+
+        
 
         # Ceiling height
         ttk.Label(frame, text="Ceiling height (m):").grid(row=row, column=0, sticky="w", pady=4)
@@ -155,7 +172,18 @@ class BuildingInputGUI:
         if not needs_secondary:
             self.c_var.set("")
             self.d_var.set("")
+        self._update_image()
 
+    def _update_image(self):
+        img_path = LAYOUT_IMAGES.get(self.layout_var.get(), "")
+        if img_path and os.path.exists(img_path):
+            img = Image.open(img_path)
+            img.thumbnail((180, 180))
+            self._photo = ImageTk.PhotoImage(img)
+            self.image_label.config(image=self._photo)
+        else:
+            self.image_label.config(image="")
+    
     def _parse_float(self, var: tk.StringVar, name: str) -> float:
         try:
             return float(var.get())
