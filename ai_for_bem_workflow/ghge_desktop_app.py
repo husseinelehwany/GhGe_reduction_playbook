@@ -38,7 +38,7 @@ defaults = {
     "ceiling_height": 3.0,
     "number_of_floors": 1,
     "WWR": 0.5,
-    "details": "More details on the building...",
+    "details": "Add more details on the building, such as: building use, age, location/climate, lighting, equipment, operating schedules, HVAC system and zoning details.",
 }
 
 
