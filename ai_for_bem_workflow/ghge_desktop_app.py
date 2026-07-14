@@ -60,11 +60,13 @@ defaults = {
     "occ_cool_sp": 24.0,
     "unocc_heat_sp": 16.0,
     "unocc_cool_sp": 28.0,
-    # Schedules (hours, 0–24)
-    "hvac_start": "06:00",
-    "hvac_end": "22:00",
-    "occ_start": "08:00",
-    "occ_end": "18:00",
+    # Schedules (HH:MM)
+    "hvac_start_wd": "06:00", "hvac_end_wd": "22:00",
+    "hvac_start_sat": "08:00", "hvac_end_sat": "18:00",
+    "hvac_start_sun": "08:00", "hvac_end_sun": "18:00",
+    "occ_start_wd": "08:00", "occ_end_wd": "18:00",
+    "occ_start_sat": "09:00", "occ_end_sat": "17:00",
+    "occ_start_sun": "09:00", "occ_end_sun": "17:00",
 }
 
 
@@ -355,25 +357,56 @@ class BuildingInputGUI:
             ttk.Label(frame, text=label2 + ":").grid(row=parent_row + 1, column=2, sticky="w", pady=2)
             ttk.Entry(frame, textvariable=var2, width=8).grid(row=parent_row + 1, column=3, sticky="w", padx=(4, 0))
 
+        def add_schedule(start_row, title, day_vars):
+            ttk.Label(frame, text=title, font=("", 9, "bold")).grid(
+                row=start_row, column=0, columnspan=4, sticky="w", pady=(12, 2))
+            ttk.Label(frame, text="Start (h):").grid(row=start_row + 1, column=1, sticky="w", pady=1)
+            ttk.Label(frame, text="End (h):").grid(row=start_row + 1, column=3, sticky="w", pady=1)
+            for i, (day_label, var_start, var_end) in enumerate(day_vars):
+                r = start_row + 2 + i
+                ttk.Label(frame, text=day_label + ":").grid(row=r, column=0, sticky="w", pady=2)
+                ttk.Entry(frame, textvariable=var_start, width=8).grid(row=r, column=1, sticky="w", padx=(4, 16))
+                ttk.Entry(frame, textvariable=var_end, width=8).grid(row=r, column=3, sticky="w", padx=(4, 0))
+
         self.occ_heat_sp   = tk.StringVar(value=defaults["occ_heat_sp"])
         self.occ_cool_sp   = tk.StringVar(value=defaults["occ_cool_sp"])
         self.unocc_heat_sp = tk.StringVar(value=defaults["unocc_heat_sp"])
         self.unocc_cool_sp = tk.StringVar(value=defaults["unocc_cool_sp"])
-        self.hvac_start    = tk.StringVar(value=defaults["hvac_start"])
-        self.hvac_end      = tk.StringVar(value=defaults["hvac_end"])
-        self.occ_start     = tk.StringVar(value=defaults["occ_start"])
-        self.occ_end       = tk.StringVar(value=defaults["occ_end"])
 
-        add_row(0,  "Occupied setpoints",    self.occ_heat_sp,   "Heating (°C)", self.occ_cool_sp,   "Cooling (°C)")
-        add_row(2,  "Unoccupied setpoints",  self.unocc_heat_sp, "Heating (°C)", self.unocc_cool_sp, "Cooling (°C)")
-        add_row(4,  "HVAC operation schedule", self.hvac_start,  "Start (h)",    self.hvac_end,       "End (h)")
-        add_row(6,  "Occupancy schedule",    self.occ_start,     "Start (h)",    self.occ_end,        "End (h)")
+        self.hvac_start_wd  = tk.StringVar(value=defaults["hvac_start_wd"])
+        self.hvac_end_wd    = tk.StringVar(value=defaults["hvac_end_wd"])
+        self.hvac_start_sat = tk.StringVar(value=defaults["hvac_start_sat"])
+        self.hvac_end_sat   = tk.StringVar(value=defaults["hvac_end_sat"])
+        self.hvac_start_sun = tk.StringVar(value=defaults["hvac_start_sun"])
+        self.hvac_end_sun   = tk.StringVar(value=defaults["hvac_end_sun"])
 
-        ttk.Label(frame, text="HVAC details:").grid(row=8, column=0, columnspan=4, sticky="w", pady=(12, 2))
+        self.occ_start_wd  = tk.StringVar(value=defaults["occ_start_wd"])
+        self.occ_end_wd    = tk.StringVar(value=defaults["occ_end_wd"])
+        self.occ_start_sat = tk.StringVar(value=defaults["occ_start_sat"])
+        self.occ_end_sat   = tk.StringVar(value=defaults["occ_end_sat"])
+        self.occ_start_sun = tk.StringVar(value=defaults["occ_start_sun"])
+        self.occ_end_sun   = tk.StringVar(value=defaults["occ_end_sun"])
+
+        add_row(0, "Occupied setpoints",   self.occ_heat_sp,   "Heating (°C)", self.occ_cool_sp,   "Cooling (°C)")
+        add_row(2, "Unoccupied setpoints", self.unocc_heat_sp, "Heating (°C)", self.unocc_cool_sp, "Cooling (°C)")
+
+        add_schedule(4, "HVAC operation schedule", [
+            ("Weekdays",  self.hvac_start_wd,  self.hvac_end_wd),
+            ("Saturdays", self.hvac_start_sat, self.hvac_end_sat),
+            ("Sundays",   self.hvac_start_sun, self.hvac_end_sun),
+        ])
+
+        add_schedule(9, "Occupancy schedule", [
+            ("Weekdays",  self.occ_start_wd,  self.occ_end_wd),
+            ("Saturdays", self.occ_start_sat, self.occ_end_sat),
+            ("Sundays",   self.occ_start_sun, self.occ_end_sun),
+        ])
+
+        ttk.Label(frame, text="HVAC details:").grid(row=14, column=0, columnspan=4, sticky="w", pady=(12, 2))
         self.hvac_text = tk.Text(frame, width=50, height=5, wrap="word")
         self.hvac_text.insert("1.0", defaults["hvac_description"])
-        self.hvac_text.grid(row=9, column=0, columnspan=4, sticky="nsew", pady=(0, 4))
-        frame.rowconfigure(9, weight=1)
+        self.hvac_text.grid(row=15, column=0, columnspan=4, sticky="nsew", pady=(0, 4))
+        frame.rowconfigure(15, weight=1)
 
 
     # ── Details tab ───────────────────────────────────────────────────────────
@@ -456,10 +489,18 @@ class BuildingInputGUI:
             occ_cool_sp   = self._parse_float(self.occ_cool_sp,   "Occupied cooling setpoint")
             unocc_heat_sp = self._parse_float(self.unocc_heat_sp, "Unoccupied heating setpoint")
             unocc_cool_sp = self._parse_float(self.unocc_cool_sp, "Unoccupied cooling setpoint")
-            hvac_start    = self._parse_float(self.hvac_start,    "HVAC start hour")
-            hvac_end      = self._parse_float(self.hvac_end,      "HVAC end hour")
-            occ_start     = self._parse_float(self.occ_start,     "Occupancy start hour")
-            occ_end       = self._parse_float(self.occ_end,       "Occupancy end hour")
+            hvac_start_wd  = self.hvac_start_wd.get().strip()
+            hvac_end_wd    = self.hvac_end_wd.get().strip()
+            hvac_start_sat = self.hvac_start_sat.get().strip()
+            hvac_end_sat   = self.hvac_end_sat.get().strip()
+            hvac_start_sun = self.hvac_start_sun.get().strip()
+            hvac_end_sun   = self.hvac_end_sun.get().strip()
+            occ_start_wd   = self.occ_start_wd.get().strip()
+            occ_end_wd     = self.occ_end_wd.get().strip()
+            occ_start_sat  = self.occ_start_sat.get().strip()
+            occ_end_sat    = self.occ_end_sat.get().strip()
+            occ_start_sun  = self.occ_start_sun.get().strip()
+            occ_end_sun    = self.occ_end_sun.get().strip()
             location    = self.location_var.get().strip()
             age         = self.age_var.get().strip()
             orientation = self.orientation_var.get()
@@ -487,10 +528,12 @@ class BuildingInputGUI:
             "occ_cool_sp": occ_cool_sp,
             "unocc_heat_sp": unocc_heat_sp,
             "unocc_cool_sp": unocc_cool_sp,
-            "hvac_start": hvac_start,
-            "hvac_end":   hvac_end,
-            "occ_start":  occ_start,
-            "occ_end":    occ_end,
+            "hvac_start_wd": hvac_start_wd, "hvac_end_wd": hvac_end_wd,
+            "hvac_start_sat": hvac_start_sat, "hvac_end_sat": hvac_end_sat,
+            "hvac_start_sun": hvac_start_sun, "hvac_end_sun": hvac_end_sun,
+            "occ_start_wd": occ_start_wd, "occ_end_wd": occ_end_wd,
+            "occ_start_sat": occ_start_sat, "occ_end_sat": occ_end_sat,
+            "occ_start_sun": occ_start_sun, "occ_end_sun": occ_end_sun,
         }
 
         self.generate_btn.config(state="disabled")
