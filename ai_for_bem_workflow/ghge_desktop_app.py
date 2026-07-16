@@ -51,10 +51,10 @@ defaults = {
     "age": "2021, between 1995 and 1999, 1980s",
     "orientation": "S",
     # Gains
-    "people_description": "",
-    "lighting_description": "",
-    "equipment_description": "",
-    "hvac_description": "It is an AHU VAV system, with economizer and heat recovery. Each zone has an electric baseboard heater.",
+    "people_description": "Each floor has 25 people ...\nThe occupancy density is 20 m2/person ...",
+    "lighting_description": "The building is equiped with LED lights ...\nThe lighting density is 6 W/m2 ...",
+    "equipment_description": "Each zone has a PC, a monitor and a printer ...",
+    "hvac_description": "The building has an AHU VAV system, with economizer and heat recovery. Each zone has an electric baseboard heater.",
     # HVAC setpoints
     "occ_heat_sp": 21.0,
     "occ_cool_sp": 24.0,
@@ -67,6 +67,7 @@ defaults = {
     "occ_start_wd": "08:00", "occ_end_wd": "18:00",
     "occ_start_sat": "09:00", "occ_end_sat": "17:00",
     "occ_start_sun": "09:00", "occ_end_sun": "17:00",
+    "zones_per_floor": "1 zone",
 }
 
 
@@ -135,7 +136,8 @@ class BuildingInputGUI:
     # ── General tab ───────────────────────────────────────────────────────────
 
     def _build_general_tab(self, frame):
-        frame.columnconfigure(1, weight=1)
+        for i in range(4):
+            frame.columnconfigure(i, weight=1)
         row = 0
 
         # Weather file
@@ -163,8 +165,8 @@ class BuildingInputGUI:
         ttk.Label(frame, text="Building layout:").grid(row=row, column=0, sticky="w", pady=4)
         self.layout_var = tk.StringVar(value=defaults["layout"])
         layout_cb = ttk.Combobox(frame, textvariable=self.layout_var, values=LAYOUTS,
-                                 state="readonly", width=22)
-        layout_cb.grid(row=row, column=1, columnspan=2, sticky="w", pady=4)
+                                 state="readonly", width=33)
+        layout_cb.grid(row=row, column=1, columnspan=2, sticky="ew", pady=4)
         layout_cb.bind("<<ComboboxSelected>>", self._on_layout_change)
 
         self._photo = None
@@ -287,6 +289,7 @@ class BuildingInputGUI:
         frame.rowconfigure(row, weight=1)
 
     def _on_fen_select(self, name: str):
+        # assigns the value of wwr_slct_var to wwr_var
         self.wwr_slct_var.set(name)
         try:
             self.wwr_var.set(float(name.split()[-1]))
@@ -328,21 +331,50 @@ class BuildingInputGUI:
     # ── Gains tab ─────────────────────────────────────────────────────────────
 
     def _build_gains_tab(self, frame):
-        frame.columnconfigure(0, weight=1)
+        for i in range(3):
+            frame.columnconfigure(i, weight=1)
 
         fields = [
-            ("People", "people_text",    "Describe occupancy: density, activity level, schedules…"),
-            ("Lighting", "lighting_text", "Describe lighting: type, power density, controls, schedules…"),
-            ("Equipment", "equip_text",   "Describe plug loads: computers, servers, kitchen equipment…"),
+            ("People", "people_text",    defaults["people_description"]),
+            ("Lighting", "lighting_text", defaults["lighting_description"]),
+            ("Equipment", "equip_text",   defaults["equipment_description"]),
         ]
-
+        row=0
         for i, (label, attr, placeholder) in enumerate(fields):
-            ttk.Label(frame, text=label + ":").grid(row=i * 2, column=0, sticky="w", pady=(8, 0))
+            ttk.Label(frame, text=label + ":").grid(row=row, column=0, sticky="w", pady=(8, 0))
+            row += 1
             text = tk.Text(frame, width=50, height=4, wrap="word")
             text.insert("1.0", defaults.get(label.lower() + "_description", "") or placeholder)
-            text.grid(row=i * 2 + 1, column=0, sticky="ew", pady=(0, 4))
+            text.grid(row=row, column=0,columnspan=3, sticky="ew", pady=(0, 4))
+            row += 1
             setattr(self, attr, text)
 
+        self.occ_start_wd  = tk.StringVar(value=defaults["occ_start_wd"])
+        self.occ_end_wd    = tk.StringVar(value=defaults["occ_end_wd"])
+        self.occ_start_sat = tk.StringVar(value=defaults["occ_start_sat"])
+        self.occ_end_sat   = tk.StringVar(value=defaults["occ_end_sat"])
+        self.occ_start_sun = tk.StringVar(value=defaults["occ_start_sun"])
+        self.occ_end_sun   = tk.StringVar(value=defaults["occ_end_sun"])
+
+        schedule_frame = ttk.Frame(frame)
+        schedule_frame.grid(row=row, column=0, columnspan=4, sticky="w")
+
+        def add_schedule(start_row, title, day_vars):
+            ttk.Label(schedule_frame, text=title, font=("", 9, "bold")).grid(
+                row=start_row, column=0, columnspan=4, sticky="w", pady=(12, 2))
+            ttk.Label(schedule_frame, text="Start (h):").grid(row=start_row + 1, column=1, sticky="w", pady=1)
+            ttk.Label(schedule_frame, text="End (h):").grid(row=start_row + 1, column=2, sticky="w", pady=1)
+            for i, (day_label, var_start, var_end) in enumerate(day_vars):
+                r = start_row + 2 + i
+                ttk.Label(schedule_frame, text=day_label + ":").grid(row=r, column=0, sticky="w", pady=2, padx=(0, 24))
+                ttk.Entry(schedule_frame, textvariable=var_start, width=8).grid(row=r, column=1, sticky="w", padx=(4, 24))
+                ttk.Entry(schedule_frame, textvariable=var_end, width=8).grid(row=r, column=2, sticky="w", padx=(4, 0))
+        
+        add_schedule(0, "Occupancy schedule", [
+            ("Weekdays",  self.occ_start_wd,  self.occ_end_wd),
+            ("Saturdays", self.occ_start_sat, self.occ_end_sat),
+            ("Sundays",   self.occ_start_sun, self.occ_end_sun),
+        ])
     # ── HVAC tab ──────────────────────────────────────────────────────────────
 
     def _build_hvac_tab(self, frame):
@@ -380,12 +412,7 @@ class BuildingInputGUI:
         self.hvac_start_sun = tk.StringVar(value=defaults["hvac_start_sun"])
         self.hvac_end_sun   = tk.StringVar(value=defaults["hvac_end_sun"])
 
-        self.occ_start_wd  = tk.StringVar(value=defaults["occ_start_wd"])
-        self.occ_end_wd    = tk.StringVar(value=defaults["occ_end_wd"])
-        self.occ_start_sat = tk.StringVar(value=defaults["occ_start_sat"])
-        self.occ_end_sat   = tk.StringVar(value=defaults["occ_end_sat"])
-        self.occ_start_sun = tk.StringVar(value=defaults["occ_start_sun"])
-        self.occ_end_sun   = tk.StringVar(value=defaults["occ_end_sun"])
+        
 
         add_row(0, "Occupied setpoints",   self.occ_heat_sp,   "Heating (°C)", self.occ_cool_sp,   "Cooling (°C)")
         add_row(2, "Unoccupied setpoints", self.unocc_heat_sp, "Heating (°C)", self.unocc_cool_sp, "Cooling (°C)")
@@ -396,17 +423,25 @@ class BuildingInputGUI:
             ("Sundays",   self.hvac_start_sun, self.hvac_end_sun),
         ])
 
-        add_schedule(9, "Occupancy schedule", [
-            ("Weekdays",  self.occ_start_wd,  self.occ_end_wd),
-            ("Saturdays", self.occ_start_sat, self.occ_end_sat),
-            ("Sundays",   self.occ_start_sun, self.occ_end_sun),
-        ])
+        
 
-        ttk.Label(frame, text="HVAC details:").grid(row=14, column=0, columnspan=4, sticky="w", pady=(12, 2))
+        ttk.Label(frame, text="Zones per floor:").grid(row=14, column=0, sticky="w", pady=(12, 2))
+        self.zones_var = tk.StringVar(value=defaults["zones_per_floor"])
+        ttk.Combobox(frame, textvariable=self.zones_var,
+                     values=["1 zone", "2 zones", "5 zones"],
+                     state="readonly", width=12).grid(row=14, column=1, sticky="w", pady=(12, 2))
+
+        ttk.Label(frame, text="AHU for ...").grid(row=14, column=2, sticky="w", pady=(12, 2))
+        self.ahus_var = tk.StringVar(value="whole building")
+        ttk.Combobox(frame, textvariable=self.ahus_var,
+                     values=["whole building", "each floor", "perimeter zones + core zones", "each facade + core zones"],
+                     state="readonly", width=24).grid(row=14, column=3, sticky="w", pady=(12, 2))
+
+        ttk.Label(frame, text="HVAC details:").grid(row=15, column=0, columnspan=4, sticky="w", pady=(12, 2))
         self.hvac_text = tk.Text(frame, width=50, height=5, wrap="word")
         self.hvac_text.insert("1.0", defaults["hvac_description"])
-        self.hvac_text.grid(row=15, column=0, columnspan=4, sticky="nsew", pady=(0, 4))
-        frame.rowconfigure(15, weight=1)
+        self.hvac_text.grid(row=16, column=0, columnspan=4, sticky="nsew", pady=(0, 4))
+        frame.rowconfigure(16, weight=1)
 
 
     # ── Details tab ───────────────────────────────────────────────────────────
@@ -465,6 +500,12 @@ class BuildingInputGUI:
         except ValueError:
             raise ValueError(f"'{name}' must be a number or left blank.")
 
+    def _parse_int(self, var: tk.StringVar, name: str) -> float:
+        try:
+            return int(var.get())
+        except (ValueError, TypeError):
+            raise ValueError(f"'{name}' must be a whole number.")
+
     def _submit(self):
         try:
             epw_file = self.epw_var.get().strip()
@@ -479,7 +520,8 @@ class BuildingInputGUI:
             if needs_secondary and (c is None or d is None):
                 raise ValueError(f"Dimensions c and d are required for {layout}.")
             ceiling_height = self._parse_float(self.ceiling_var, "Ceiling height")
-            floors = int(self.floors_var.get())
+            floors = self._parse_int(self.floors_var, "Above-grade floors")
+            basement = self._parse_int(self.bsmnt_var, "Basement floors")
             wwr = self._parse_float(self.wwr_var, "WWR")
             if not 0 < wwr < 1:
                 raise ValueError("WWR must be between 0 and 1 (exclusive).")
@@ -509,11 +551,11 @@ class BuildingInputGUI:
             return
 
         self.result = {
-            "epw_file": epw_file,
-            "layout": layout,
+            "epw_file": epw_file, "layout": layout,
             "a": a, "b": b, "c": c, "d": d,
             "ceiling_height": ceiling_height,
             "number_of_floors": floors,
+            "basement_floors": basement,
             "WWR": wwr,
             "fenestration_description": self.fen_text.get("1.0", "end").strip(),
             "details": details,
@@ -524,24 +566,38 @@ class BuildingInputGUI:
             "lighting_description": self.lighting_text.get("1.0", "end").strip(),
             "equipment_description": self.equip_text.get("1.0", "end").strip(),
             "hvac_description": self.hvac_text.get("1.0", "end").strip(),
-            "occ_heat_sp": occ_heat_sp,
+            "occ_heat_sp": occ_heat_sp, 
             "occ_cool_sp": occ_cool_sp,
-            "unocc_heat_sp": unocc_heat_sp,
+            "unocc_heat_sp": unocc_heat_sp, 
             "unocc_cool_sp": unocc_cool_sp,
-            "hvac_start_wd": hvac_start_wd, "hvac_end_wd": hvac_end_wd,
-            "hvac_start_sat": hvac_start_sat, "hvac_end_sat": hvac_end_sat,
-            "hvac_start_sun": hvac_start_sun, "hvac_end_sun": hvac_end_sun,
-            "occ_start_wd": occ_start_wd, "occ_end_wd": occ_end_wd,
-            "occ_start_sat": occ_start_sat, "occ_end_sat": occ_end_sat,
-            "occ_start_sun": occ_start_sun, "occ_end_sun": occ_end_sun,
+            "hvac_start_wd": hvac_start_wd, 
+            "hvac_end_wd": hvac_end_wd,
+            "hvac_start_sat": hvac_start_sat, 
+            "hvac_end_sat": hvac_end_sat,
+            "hvac_start_sun": hvac_start_sun, 
+            "hvac_end_sun": hvac_end_sun,
+            "occ_start_wd": occ_start_wd, 
+            "occ_end_wd": occ_end_wd,
+            "occ_start_sat": occ_start_sat, 
+            "occ_end_sat": occ_end_sat,
+            "occ_start_sun": occ_start_sun, 
+            "occ_end_sun": occ_end_sun,
+            "zones_per_floor": self.zones_var.get(), 
+            "AHUs": self.ahus_var.get(),
         }
 
         self.generate_btn.config(state="disabled")
 
         def log(msg=""):
+            # schedules self._append_log(str(msg) + "\n") to be called on the main (GUI) thread
+            # root.after() hand work back to the main thread's event loop
+            # 0ms: run as soon as main thread event loop is free
             self.root.after(0, self._append_log, str(msg) + "\n")
 
         if self.on_submit:
+            # Main thread: Tkinter event loop, keeps the GUI responsive
+            # Worker thread: runs run_workflow(self.results,log), calls log(...) to send  messages back to GUI 
+            # daemon=True — if the user closes the window, Python doesn't wait the thread to finish before exiting
             threading.Thread(target=self.on_submit, args=(self.result, log), daemon=True).start()
         else:
             self.root.destroy()
@@ -573,3 +629,4 @@ def get_building_description() -> dict:
 if __name__ == "__main__":
     desc = get_building_description()
     print(desc)
+    
