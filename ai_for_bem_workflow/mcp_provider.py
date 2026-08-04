@@ -5,6 +5,7 @@ import json
 import os
 import random
 import ast
+from collections import defaultdict
 from eppy import modeleditor
 from eppy.modeleditor import IDF
 from api_clients import *
@@ -21,10 +22,11 @@ class HVACTemplateMCP:
     It returns the errors in json format and saves them to json file for future retrieval
     """
 
-    def __init__(self, idf_path):
+    def __init__(self, idf_path, eio_file):
         # self.request_client = GeminiChats("gemini-2.5-flash")
         self.request_client = OpenRouterAPIClient("google/gemini-3.1-flash-lite-preview")
         self.idf = IDF(idf_path)
+        self.eio_file = eio_file
         request_template_path = os.path.join("input_files", "hvac_request_schema.json")
         with open(request_template_path, 'r') as file:
             self.request_schema = json.load(file)
@@ -108,18 +110,18 @@ class HVACTemplateMCP:
                         hvac_template["fields"][k] = value
         return hvac_template
 
-    def generate_eplus_objects(self, hvac_template):
+    def generate_eplus_objects(self, hvac_template, zone_clusters):
         """
         sends the template to its relevant function, generates the energyplus HVAC_TEMPLATE objects and saves file
         :param hvac_template: relevant template
         :return out_idf: updated idf file
         """
         if hvac_template["template_id"] == "Packaged_VAV":
-            self.generate_packaged_VAV(hvac_template)
+            self.generate_packaged_VAV(hvac_template, zone_clusters)
         elif hvac_template["template_id"] == "Heat_pump_air2air":
-            self.generate_heat_pump(hvac_template)
+            self.generate_heat_pump(hvac_template, zone_clusters)
         elif hvac_template["template_id"] == "CAV_System":
-            self.generate_CAV_System(hvac_template)
+            self.generate_CAV_System(hvac_template, zone_clusters)
 
 
     def save_idf(self):
@@ -173,7 +175,7 @@ class HVACTemplateMCP:
         self.idf.idfobjects["HVACTEMPLATE:THERMOSTAT"][-1].Cooling_Setpoint_Schedule_Name = ""
         self.idf.idfobjects["HVACTEMPLATE:THERMOSTAT"][-1].Constant_Cooling_Setpoint = 25
 
-    def generate_packaged_VAV(self, template):
+    def generate_packaged_VAV(self, template, zone_clusters):
 
         # add sizing
         self.add_sizing_objects()
@@ -186,43 +188,43 @@ class HVACTemplateMCP:
         thermostat_name = "thermostat"
         self.add_thermostat(thermostat_name)
 
-        AHU_name = "AHU1"
-        self.idf.newidfobject("HVACTEMPLATE:SYSTEM:PACKAGEDVAV")
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Name = AHU_name
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].System_Availability_Schedule_Name = ""
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Type = "TwoSpeedDX"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Availability_Schedule_Name = ""
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Setpoint_Schedule_Name = ""
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Design_Setpoint = 13
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Gross_Rated_Total_Capacity = "autosize"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Gross_Rated_COP = 3
+        for i, zone_cluster in enumerate(zone_clusters):
+            AHU_name = f"AHU_{i+1}"
+            self.idf.newidfobject("HVACTEMPLATE:SYSTEM:PACKAGEDVAV")
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Name = AHU_name
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].System_Availability_Schedule_Name = ""
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Type = "TwoSpeedDX"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Availability_Schedule_Name = ""
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Setpoint_Schedule_Name = ""
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Design_Setpoint = 13
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Gross_Rated_Total_Capacity = "autosize"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Cooling_Coil_Gross_Rated_COP = 3
 
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Type = "Gas"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Availability_Schedule_Name = ""
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Setpoint_Schedule_Name = ""
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Design_Setpoint = 18
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Capacity = "autosize"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Gas_Heating_Coil_Efficiency = 0.8
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Type = "Gas"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Availability_Schedule_Name = ""
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Setpoint_Schedule_Name = ""
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Design_Setpoint = 18
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heating_Coil_Capacity = "autosize"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Gas_Heating_Coil_Efficiency = 0.8
 
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Economizer_Type = template["fields"]["Economizer_Type"]
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Night_Cycle_Control = "StayOff"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heat_Recovery_Type = template["fields"]["heat_recovery_type"]
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Economizer_Type = template["fields"]["Economizer_Type"]
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Night_Cycle_Control = "StayOff"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:PACKAGEDVAV"][-1].Heat_Recovery_Type = template["fields"]["heat_recovery_type"]
+
+            # TODO: assumption that all zones are conditioned
+            for zone in zone_cluster:
+                self.idf.newidfobject("HVACTEMPLATE:ZONE:VAV")
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Zone_Name = zone
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Template_VAV_System_Name = AHU_name
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Template_Thermostat_Name = thermostat_name
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Outdoor_Air_Method = "Sum"
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Outdoor_Air_Flow_Rate_per_Person = 0.0025
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Outdoor_Air_Flow_Rate_per_Zone_Floor_Area = 0.0003
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Reheat_Coil_Type = template["fields"]["Reheat_Coil_Type"]
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Baseboard_Heating_Type = template["fields"]["Baseboard_Heating_Type"]
 
 
-        # TODO: assumption that all zones are conditioned
-        for i in range(len(zone_names)):
-            self.idf.newidfobject("HVACTEMPLATE:ZONE:VAV")
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Zone_Name = zone_names[i]
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Template_VAV_System_Name = AHU_name
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Template_Thermostat_Name = thermostat_name
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Outdoor_Air_Method = "Sum"
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Outdoor_Air_Flow_Rate_per_Person = 0.0025
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Outdoor_Air_Flow_Rate_per_Zone_Floor_Area = 0.0003
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Reheat_Coil_Type = template["fields"]["Reheat_Coil_Type"]
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:VAV"][-1].Baseboard_Heating_Type = template["fields"]["Baseboard_Heating_Type"]
-
-
-    def generate_heat_pump(self, template):
+    def generate_heat_pump(self, template, zone_clusters):
         # add sizing
         self.add_sizing_objects()
 
@@ -233,31 +235,32 @@ class HVACTemplateMCP:
 
         thermostat_name = "thermostat"
         self.add_thermostat(thermostat_name)
+        
+        for i, zone_cluster in enumerate(zone_clusters):
+            system_name = f"HP_{i+1}"
+            ctrl_zone = random.choice(zone_clusters[i])
+            self.idf.newidfobject("HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR")
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Name = system_name
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].System_Availability_Schedule_Name = "Always On"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Control_Zone_or_Thermostat_Location_Name = ctrl_zone
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Cooling_Coil_Type = "SingleSpeedDX"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Heat_Pump_Heating_Coil_Type = "SingleSpeedDXHeatPump"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Economizer_Type = template["fields"]["Economizer_Type"]
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Night_Cycle_Control = "StayOff"
 
-        system_name = "heatpump1"
-        ctrl_zone = random.choice(zone_names)
-        self.idf.newidfobject("HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR")
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Name = system_name
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].System_Availability_Schedule_Name = "Always On"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Control_Zone_or_Thermostat_Location_Name = ctrl_zone
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Cooling_Coil_Type = "SingleSpeedDX"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Heat_Pump_Heating_Coil_Type = "SingleSpeedDXHeatPump"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Economizer_Type = template["fields"]["Economizer_Type"]
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARYHEATPUMP:AIRTOAIR"][-1].Night_Cycle_Control = "StayOff"
-
-        # TODO: assumption that all zones are conditioned
-        for i in range(len(zone_names)):
-            self.idf.newidfobject("HVACTEMPLATE:ZONE:UNITARY")
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Zone_Name = zone_names[i]
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Template_Unitary_System_Name = system_name
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Template_Thermostat_Name = thermostat_name
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Method = "Sum"
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Flow_Rate_per_Person = 0.0025
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Flow_Rate_per_Zone_Floor_Area = 0.0003
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Baseboard_Heating_Type = template["fields"]["Baseboard_Heating_Type"]
+            # TODO: assumption that all zones are conditioned
+            for zone in zone_cluster:
+                self.idf.newidfobject("HVACTEMPLATE:ZONE:UNITARY")
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Zone_Name = zone
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Template_Unitary_System_Name = system_name
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Template_Thermostat_Name = thermostat_name
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Method = "Sum"
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Flow_Rate_per_Person = 0.0025
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Flow_Rate_per_Zone_Floor_Area = 0.0003
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Baseboard_Heating_Type = template["fields"]["Baseboard_Heating_Type"]
         
 
-    def generate_CAV_System(self, template):
+    def generate_CAV_System(self, template, zone_clusters):
         # add sizing
         self.add_sizing_objects()
 
@@ -269,50 +272,138 @@ class HVACTemplateMCP:
         thermostat_name = "thermostat"
         self.add_thermostat(thermostat_name)
 
-        system_name = "RTU1"
-        ctrl_zone = random.choice(zone_names)
-        self.idf.newidfobject("HVACTEMPLATE:SYSTEM:UNITARY")
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Name = system_name
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].System_Availability_Schedule_Name = "Always On"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Control_Zone_or_Thermostat_Location_Name = ctrl_zone 
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Cooling_Coil_Type = "SingleSpeedDX"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Heating_Coil_Type = "Gas"
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Economizer_Type = template["fields"]["Economizer_Type"]
-        self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Night_Cycle_Control = "StayOff"
+        for i, zone_cluster in enumerate(zone_clusters):
+            system_name = f"RTU_{i+1}"
+            ctrl_zone = random.choice(zone_clusters[i])
+            self.idf.newidfobject("HVACTEMPLATE:SYSTEM:UNITARY")
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Name = system_name
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].System_Availability_Schedule_Name = "Always On"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Control_Zone_or_Thermostat_Location_Name = ctrl_zone 
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Cooling_Coil_Type = "SingleSpeedDX"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Heating_Coil_Type = "Gas"
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Economizer_Type = template["fields"]["Economizer_Type"]
+            self.idf.idfobjects["HVACTEMPLATE:SYSTEM:UNITARY"][-1].Night_Cycle_Control = "StayOff"
 
-        # TODO: assumption that all zones are conditioned
-        for i in range(len(zone_names)):
-            self.idf.newidfobject("HVACTEMPLATE:ZONE:UNITARY")
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Zone_Name = zone_names[i]
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Template_Unitary_System_Name = system_name
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Template_Thermostat_Name = thermostat_name
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Method = "Sum"
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Flow_Rate_per_Person = 0.0025
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Flow_Rate_per_Zone_Floor_Area = 0.0003
-            self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Baseboard_Heating_Type = template["fields"]["Baseboard_Heating_Type"]
+            # TODO: assumption that all zones are conditioned
+            for zone in zone_cluster:
+                self.idf.newidfobject("HVACTEMPLATE:ZONE:UNITARY")
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Zone_Name = zone
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Template_Unitary_System_Name = system_name
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Template_Thermostat_Name = thermostat_name
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Method = "Sum"
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Flow_Rate_per_Person = 0.0025
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Outdoor_Air_Flow_Rate_per_Zone_Floor_Area = 0.0003
+                self.idf.idfobjects["HVACTEMPLATE:ZONE:UNITARY"][-1].Baseboard_Heating_Type = template["fields"]["Baseboard_Heating_Type"]
+ 
 
+    def get_vertical_zone_clusters(self, zones, tol: float = 0.1):
+        bld_min_x = min(z["min_x"] for z in zones)
+        bld_max_x = max(z["max_x"] for z in zones)
+        bld_min_y = min(z["min_y"] for z in zones)
+        bld_max_y = max(z["max_y"] for z in zones)
 
-    def get_hvac_objects(self, building_description):
-        # Step 1: LLM creates request, MCP client
-        request = self.generate_HVACTemplate_Request(building_description)
+        def _is_perim(z):
+            return (
+                abs(z["min_x"] - bld_min_x) < tol or
+                abs(z["max_x"] - bld_max_x) < tol or
+                abs(z["min_y"] - bld_min_y) < tol or
+                abs(z["max_y"] - bld_max_y) < tol
+            )
         
-        if request["HVAC_exists"]:
-            # Step 2: get hvac template, MCP server
-            hvac_template = self.get_hvac_template(request)
-            # step 3: generate hvac_template objects
-            self.generate_eplus_objects(hvac_template)
-            self.save_idf()
+        stacks = defaultdict(list)
+        for z in zones:
+            stacks[(z["cx"], z["cy"])].append(z)
+        
+        core_group  = []
+        perim_groups = []
+        for stack in stacks.values():
+            names = [z["name"] for z in stack]
+            if any(_is_perim(z) for z in stack):
+                perim_groups.append(names)
+            else:
+                core_group.extend(names)
 
-        return self.idf
+        return core_group, perim_groups
 
+    def perimeter_core_split(self, zones, tol: float = 0.1):
+        # return all perimeter zones as 1 cluster + 1 for core zones
+        core_group, perim_groups = self.get_vertical_zone_clusters(zones, tol)
+        perim_zones_flat = [item for group in perim_groups for item in group]
+        all_clusters = [core_group, perim_zones_flat]
+        return all_clusters
+
+    def exposure_split(self, zones, tol: float = 0.1):
+        # returns the zones in each facade as a separate cluster + 1 for core zones
+        core_group, perim_groups = self.get_vertical_zone_clusters(zones, tol)
+        all_clusters = [core_group] + perim_groups
+        return all_clusters
+
+    def floors_split(self, zones):
+        zones_per_floor = defaultdict(list)
+        for z in zones:
+            zones_per_floor[z["min_z"]].append(z["name"])
+        return list(zones_per_floor.values())
+
+    def get_zone_clusters(self, ahu_assig, tol: float = 0.1):
+        """Group zones 
+        ["whole building", "each floor", "perimeter zones + core zones", "each facade + core zones"]
+        """
+        zones = []
+        def _snap(val):
+            return round(float(val) / tol) * tol
+
+        with open(self.eio_file, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line.startswith("Zone Information"):
+                    continue
+                v = [x.strip() for x in line.split(",")]
+                zones.append({
+                    "name":  v[1],
+                    "cx": _snap(v[6]), "cy": _snap(v[7]), "min_z": _snap(v[16]),
+                    "min_x": float(v[12]), "max_x": float(v[13]),
+                    "min_y": float(v[14]), "max_y": float(v[15]),
+                })
+        zone_clusters = []
+        if ahu_assig == "whole building":
+            zone_clusters = [[item["name"] for item in zones]]
+        elif ahu_assig == "each floor":
+            zone_clusters = self.floors_split(zones)
+        elif ahu_assig == "perimeter zones + core zones":
+            zone_clusters = self.perimeter_core_split(zones)
+        elif ahu_assig == "each facade + core zones":
+            zone_clusters = self.exposure_split(zones, tol)
+
+        return zone_clusters
+
+    def get_hvac_objects(self, building_description, ahu_assig):
+            # Step 1: LLM creates request, MCP client
+            request = self.generate_HVACTemplate_Request(building_description)
+            
+            if request["HVAC_exists"]:
+                # Step 2: get hvac template, MCP server
+                hvac_template = self.get_hvac_template(request)
+                # step 3: generate hvac_template objects
+                zone_clusters = self.get_zone_clusters(ahu_assig)
+                self.generate_eplus_objects(hvac_template, zone_clusters)
+                self.save_idf()
+    
+            return self.idf
 
 if __name__ == "__main__":
-    # building_desc = "AHU system with VAV terminal units without reheat coils and with heat recovery wheel"
+    building_desc = "AHU system with VAV terminal units without reheat coils and with heat recovery wheel"
     # building_desc = "RTU with basic controls."
     # building_desc = "A building with heatpump system and ventilation."
     building_desc = "A building with 4 rooms and 2 windows."
     # Initialize MCP provider
     idf = IDF()
-    mcp = HVACTemplateMCP(os.path.join("input_files", "shoebox_test_mcp.idf"))
-    idf = mcp.get_hvac_objects(building_desc)
+    mcp = HVACTemplateMCP(os.path.join("test_mcp_HVAC", "llm_gen_model_3.idf"), os.path.join("test_mcp_HVAC","llm_gen_model_3.eio"))
+    # idf = mcp.get_hvac_objects(building_desc)
+    zone_clusters = mcp.get_zone_clusters("perimeter zones + core zones")
+    mcp.generate_eplus_objects(mcp.hvac_templates["CAV_System"], zone_clusters)
+    mcp.save_idf()
+        
+    
+    
+    
 

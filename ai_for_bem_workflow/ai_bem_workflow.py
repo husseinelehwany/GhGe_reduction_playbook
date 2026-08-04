@@ -90,7 +90,21 @@ class BuildingEnergyWorkflow:
         with open(os.path.join("input_files", "example_file_prompt.idf") , 'r') as file:
             idf_content = file.read()
         building_layout = self.get_building_layout(building_description["layout"])
-        prompt = self.template_prompt.format(building_description=json.dumps(building_description),building_layout=building_layout , idf_example=idf_content)
+        zoning = ""
+        if building_description["zones_per_floor"] == "1 zone":
+            zoning = "Each floor is modelled as a single thermal zone unless mentioned otherwise earlier."
+        elif building_description["zones_per_floor"] == "2 zones":
+            zoning = "Divide aach floor into 2 equal zones unless mentioned otherwise earlier."
+        elif building_description["zones_per_floor"] == "5 zones":
+            zoning = "Divide aach floor into 4 perimeter zones and 1 core zone unless mentioned otherwise earlier."
+        keys = ["location","age","layout","a","b","c","d","ceiling_height","above_grade_floors", "basement_floors", "WWR", "fenestration_description","details", "zones_per_floor"]
+        general_dict = {k: building_description[k] for k in keys}
+        prompt = self.template_prompt.format(location = building_description["location"],
+                                             age=building_description["age"],
+                                             building_description=json.dumps(general_dict),
+                                             building_layout = building_layout , 
+                                             zoning = zoning, 
+                                             idf_example = idf_content)
         
         # Save prompt for reference
         prompt_file = os.path.join( self.workflow_dir, "full_prompt.txt")
@@ -249,9 +263,9 @@ class BuildingEnergyWorkflow:
         gains_gen = InternalGainsGenerator(idf_path)
         gains_gen.add_gains_to_idf(building_description)
 
-    def add_hvac_templates(self, building_desc, idf_path):
-        mcp = HVACTemplateMCP(idf_path)
-        idf = mcp.get_hvac_objects(building_desc)
+    def add_hvac_templates(self, building_desc, idf_path, AHU_assig, eio_file):
+        mcp = HVACTemplateMCP(idf_path, eio_file)
+        idf = mcp.get_hvac_objects(building_desc, AHU_assig)
         return idf
 
     def add_output_objects(self, idf_path, var_names, meter_names):
