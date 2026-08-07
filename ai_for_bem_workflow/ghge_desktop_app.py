@@ -46,13 +46,13 @@ defaults = {
     "basement_floors": 0,
     "WWR": 0.5,
     "fenestration_description": "",
-    "details": "Add more details on the building, such as: building use,zoning, envelope details, fenestration, etc.",
+    "details": "...",
     "location": "Ottawa",
-    "age": "2021, between 1995 and 1999, 1980s",
+    "age": "2021",
     "orientation": "S",
     # Gains
-    "people_description": "Each floor has 25 people ...\nThe occupancy density is 20 m2/person ...",
-    "lighting_description": "The building is equiped with LED lights ...\nThe lighting density is 6 W/m2 ...",
+    "people_description": "The occupancy density is 20 m2/person ...",
+    "lighting_description": "The lighting density is 6 W/m2 ...",
     "equipment_description": "Each zone has a PC, a monitor and a printer ...",
     "hvac_description": "The building has an AHU VAV system, with economizer and heat recovery. Each zone has an electric baseboard heater.",
     # HVAC setpoints
@@ -68,6 +68,8 @@ defaults = {
     "occ_start_sat": "09:00", "occ_end_sat": "17:00",
     "occ_start_sun": "09:00", "occ_end_sun": "17:00",
     "zones_per_floor": "1 zone",
+    "heating_type": "Gas",
+    "cooling_type": "DX cooling",
 }
 
 
@@ -437,11 +439,23 @@ class BuildingInputGUI:
                      values=["whole building", "each floor", "perimeter zones + core zones", "each facade + core zones"],
                      state="readonly", width=24).grid(row=14, column=3, sticky="w", pady=(12, 2))
 
-        ttk.Label(frame, text="HVAC details:").grid(row=15, column=0, columnspan=4, sticky="w", pady=(12, 2))
+        ttk.Label(frame, text="Heating type:").grid(row=15, column=0, sticky="w", pady=(12, 2))
+        self.heating_type_var = tk.StringVar(value=defaults["heating_type"])
+        ttk.Combobox(frame, textvariable=self.heating_type_var,
+                     values=["Gas", "Electric", "Heat pump", "Steam"],
+                     state="readonly", width=12).grid(row=15, column=1, sticky="w", pady=(12, 2))
+
+        ttk.Label(frame, text="Cooling type:").grid(row=15, column=2, sticky="w", pady=(12, 2))
+        self.cooling_type_var = tk.StringVar(value=defaults["cooling_type"])
+        ttk.Combobox(frame, textvariable=self.cooling_type_var,
+                     values=["DX cooling", "Chilled water", "None"],
+                     state="readonly", width=24).grid(row=15, column=3, sticky="w", pady=(12, 2))
+
+        ttk.Label(frame, text="HVAC details:").grid(row=16, column=0, columnspan=4, sticky="w", pady=(12, 2))
         self.hvac_text = tk.Text(frame, width=50, height=5, wrap="word")
         self.hvac_text.insert("1.0", defaults["hvac_description"])
-        self.hvac_text.grid(row=16, column=0, columnspan=4, sticky="nsew", pady=(0, 4))
-        frame.rowconfigure(16, weight=1)
+        self.hvac_text.grid(row=17, column=0, columnspan=4, sticky="nsew", pady=(0, 4))
+        frame.rowconfigure(17, weight=1)
 
 
     # ── Details tab ───────────────────────────────────────────────────────────
@@ -554,7 +568,7 @@ class BuildingInputGUI:
             "epw_file": epw_file, "layout": layout,
             "a": a, "b": b, "c": c, "d": d,
             "ceiling_height": ceiling_height,
-            "number_of_floors": floors,
+            "above_grade_floors": floors,
             "basement_floors": basement,
             "WWR": wwr,
             "fenestration_description": self.fen_text.get("1.0", "end").strip(),
@@ -582,8 +596,10 @@ class BuildingInputGUI:
             "occ_end_sat": occ_end_sat,
             "occ_start_sun": occ_start_sun, 
             "occ_end_sun": occ_end_sun,
-            "zones_per_floor": self.zones_var.get(), 
+            "zones_per_floor": self.zones_var.get(),
             "AHUs": self.ahus_var.get(),
+            "heating_type": self.heating_type_var.get(),
+            "cooling_type": self.cooling_type_var.get(),
         }
 
         self.generate_btn.config(state="disabled")

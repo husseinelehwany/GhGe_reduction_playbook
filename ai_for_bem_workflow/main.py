@@ -62,8 +62,8 @@ def run_workflow(user_description: dict, log=print):
             ground_message = ghge_modeller.add_ground_temperatures(idf_path, epw_file)
             log(f"Bot: {ground_message}")
             log("Bot: adding HVAC components...")
-            eio_path = os.path.join(ghge_modeller.workflow_dir, "eplustbl.eio")
-            ghge_modeller.add_hvac_templates(user_description, idf_path, eio_path)  # AHU_assig
+            eio_path = os.path.join(ghge_modeller.workflow_dir, "eplusout.eio")
+            ghge_modeller.add_hvac_templates(user_description, idf_path, eio_path)
             log("Bot: executing simulation...")
             sim_success = ghge_modeller.run_energyplus(idf_path, epw_file)
 

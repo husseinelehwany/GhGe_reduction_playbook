@@ -1,10 +1,16 @@
 You are an expert building energy modeling engineer. Generate a complete EnergyPlus IDF file based on the following building description:
 
-BUILDING DESCRIPTION:
+
+
+The buildings is located in {location} and its age is described as {age}.
+
+The building is described as follows:
 {building_description}
 
 The shape and the dimensions of the building are according to the given layout and a,b,c,d dimensions:
 {building_layout}
+
+{zoning}
 
 REQUIREMENTS:
 1. Create a complete, valid EnergyPlus IDF file, version 24.1

@@ -139,7 +139,7 @@ class BuildingEnergyWorkflow:
         b = building_description["b"]
         c = building_description["c"]
         d = building_description["d"]
-        no_of_floors = building_description["number_of_floors"]
+        no_of_floors = building_description["above_grade_floors"]
         ceiling_height = building_description["ceiling_height"]
         WWR = building_description["WWR"]
         area = 1
@@ -263,9 +263,9 @@ class BuildingEnergyWorkflow:
         gains_gen = InternalGainsGenerator(idf_path)
         gains_gen.add_gains_to_idf(building_description)
 
-    def add_hvac_templates(self, building_desc, idf_path, AHU_assig, eio_file):
+    def add_hvac_templates(self, building_desc, idf_path, eio_file):
         mcp = HVACTemplateMCP(idf_path, eio_file)
-        idf = mcp.get_hvac_objects(building_desc, AHU_assig)
+        idf = mcp.get_hvac_objects(building_desc)
         return idf
 
     def add_output_objects(self, idf_path, var_names, meter_names):

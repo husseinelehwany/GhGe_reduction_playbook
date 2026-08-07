@@ -106,7 +106,42 @@ class InternalGainsGenerator:
             Field_4=1,
         )
 
-    def occupancy_schedule(self, people_dict, name="Occupancy Schedule"):
+    def occupancy_schedule(self, user_description):
+            occ_start_wd = user_description["occ_start_wd"]
+            occ_end_wd = user_description["occ_end_wd"]
+            occ_start_sat = user_description["occ_start_sat"]
+            occ_end_sat = user_description["occ_end_sat"]
+            occ_start_sun = user_description["occ_start_sun"]
+            occ_end_sun = user_description["occ_end_sun"]
+            self.idf.newidfobject(
+                        "SCHEDULE:COMPACT",
+                        Name="Occupancy schedule",
+                        Schedule_Type_Limits_Name="Fraction",
+                        Field_1="Through: 12/31",
+                        Field_2="For: Weekdays",
+                        Field_3=f"Until: {occ_start_wd}",
+                        Field_4=0,
+                        Field_5=f"Until: {occ_end_wd}",
+                        Field_6=1,
+                        Field_7="Until: 24:00",
+                        Field_8=0,
+                        Field_9="For: Saturday",
+                        Field_10=f"Until: {occ_start_sat}",
+                        Field_11=0,
+                        Field_12=f"Until: {occ_end_sat}",
+                        Field_13=1,
+                        Field_14="Until: 24:00",
+                        Field_15=0,
+                        Field_16="For: Sunday",
+                        Field_17=f"Until: {occ_start_sun}",
+                        Field_18=0,
+                        Field_19=f"Until: {occ_end_sun}",
+                        Field_20=1,
+                        Field_21="Until: 24:00",
+                        Field_22=0,
+                    )
+
+    def occupancy_schedule_discontinued(self, people_dict, name="Occupancy Schedule"):
         """
         Build a Schedule:Compact (fraction 0/1) from the people dict fields:
           occupancy_start  – HH:MM 24-h start time
@@ -251,15 +286,18 @@ class InternalGainsGenerator:
         Call this from external workflows instead of chaining individual methods.
         """
         print("InternalGainsGenerator: parsing description...")
-        json_response = self.generate_internal_gains_request(building_description)
+        keys = ["people_description", "lighting_description", "equipment_description"]
+        general_dict = {k: building_description[k] for k in keys}
+        json_response = self.generate_internal_gains_request(general_dict)
         print(f"InternalGainsGenerator: received gains data: {json.dumps(json_response)}")
 
         people_dict = json_response.get("people", {})
         lights_dict = json_response.get("lights", {})
         equipment_dict = json_response.get("electric_equipment", {})
 
+        # TODO: LLM-based compact schedule generator
         if people_dict:
-            self.occupancy_schedule(people_dict)
+            self.occupancy_schedule(building_description)
             self.build_people_obj(people_dict)
         if lights_dict:
             self.build_lights_obj(lights_dict)
