@@ -134,7 +134,7 @@ class HVACTemplateMCP:
 
 
     def save_idf(self):
-        self.idf.save(os.path.join("test_mcp_HVAC", "llm_gen_model_3_hvac.idf"))  # there is also saveas(newfile) option
+        self.idf.save()  # there is also saveas(newfile) option
 
     def create_allzones_list(self):
         zone_names = []
