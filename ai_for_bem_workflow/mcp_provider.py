@@ -200,7 +200,7 @@ class HVACTemplateMCP:
         self.idf.newidfobject(
                     "SCHEDULE:COMPACT",
                     Name=f"{season} setpoint schedule",
-                    Schedule_Type_Limits_Name="Fraction",
+                    Schedule_Type_Limits_Name="Any Number",
                     Field_1="Through: 12/31",
                     Field_2="For: Weekdays",
                     Field_3=f"Until: {hvac_start_wd}",
