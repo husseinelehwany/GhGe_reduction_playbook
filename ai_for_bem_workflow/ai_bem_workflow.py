@@ -139,7 +139,7 @@ class BuildingEnergyWorkflow:
         b = building_description["b"]
         c = building_description["c"]
         d = building_description["d"]
-        no_of_floors = building_description["above_grade_floors"]
+        no_of_floors = building_description["above_grade_floors"] + building_description["basement_floors"]
         ceiling_height = building_description["ceiling_height"]
         WWR = building_description["WWR"]
         area = 1

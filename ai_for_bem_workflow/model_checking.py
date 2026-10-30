@@ -96,7 +96,8 @@ class ModelChecking:
         # Find search key
         for i, line in enumerate(lines):
             if 'Building Area' in lines[i-3] and 'Total Building Area' in line:
-                parts = line.split(',')  #'4950.00\n'
+                # 'Total Building Area' includes basements
+                parts = line.split(',')  
                 total_area = float(parts[-1].strip())
                 break
         return total_area
